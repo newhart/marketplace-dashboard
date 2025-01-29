@@ -33,4 +33,13 @@ class ProductService
 
         return new ProductCollection($products); 
     }
+    public function searchProduct(Request $request) : ProductCollection{
+        $products = Product::where('name', 'like', '%' . $request->keyWord . '%')
+        ->orWhere('description', 'like', '%' . $request->keyWord . '%')
+        ->with(['category'])
+        ->latest()
+        ->paginate(10); 
+
+        return new ProductCollection($products);
+    }
 }

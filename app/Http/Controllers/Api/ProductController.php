@@ -28,4 +28,8 @@ class ProductController extends Controller
     {
         return response()->json($this->productService->getByCategory($category));
     }
+    public function searchProduct(Request $request)
+    {
+        return response()->json($this->productService->searchProduct($request));
+    }
 }
