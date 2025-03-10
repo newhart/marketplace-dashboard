@@ -17,11 +17,11 @@ class DatabaseSeeder extends Seeder
     {
         User::factory()->count(10)->create();
 
-        $categories = Category::factory()->count(5)->create();
+        $categories = Category::factory()->count(15)->create();
 
         foreach (User::where('role', 'merchant')->get() as $merchant) {
             Product::factory()
-                ->count(10)
+                ->count(35)
                 ->for($merchant, 'user')
                 ->for($categories->random(), 'category')
                 ->create();

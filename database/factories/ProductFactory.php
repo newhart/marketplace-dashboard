@@ -21,7 +21,7 @@ class ProductFactory extends Factory
         return [
             'name' => $this->faker->word,
             'description' => $this->faker->paragraph,
-            'image' => $this->faker->imageUrl(640, 480, 'products', true),
+            'image' => asset('images/products/' . rand(1, 17) . '.png'),
             'price' => $this->faker->randomFloat(2, 10, 1000),
             'rating' => $this->faker->randomFloat(1, 0, 5),
             'category_id' => Category::factory(), 
