@@ -8,8 +8,9 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('products')->group(function () {
     Route::get('/', [ProductController::class, 'index']);
     Route::get('/search', [ProductController::class, 'searchProduct']);
-    Route::get('{product}', [ProductController::class, 'show']);
     Route::get('/category/{category}', [ProductController::class, 'getByCategory']);
+    Route::get('/suggest', [ProductController::class, 'suggestProduct']);
+    Route::get('{product}', [ProductController::class, 'show']);
 });
 
 Route::prefix('categories')->group(function () {

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Models\Product;
 use App\Services\ProductService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class ProductController extends Controller
@@ -17,6 +18,11 @@ class ProductController extends Controller
     public function show(Product $product)
     {
         return  response()->json($this->productService->show($product));
+    }
+
+    public function suggestProduct() : JsonResponse
+    {
+        return response()->json($this->productService->suggestProduct());
     }
 
     public function index(Request $request) 

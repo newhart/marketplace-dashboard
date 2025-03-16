@@ -15,6 +15,17 @@ class ProductService
         return new ProductResource($product->load(['category'])); 
     }
 
+    public function suggestProduct() : array
+    {
+        $products = Product::with(['category'])
+        ->limit(5)
+        ->get(); 
+
+        return [
+            'data' => ProductResource::collection($products)
+        ] ; 
+    }
+
     public function index(Request $request) : ProductCollection
     {
         $products =  Product::with(['category'])
