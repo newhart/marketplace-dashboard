@@ -30,6 +30,11 @@ class UserFactory extends Factory
             'role' => 'merchant' , 
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
+            'phone_prefix' => fake()->randomElement(['+20', '+966', '+971']),
+            'phone_number' => fake()->unique()->numerify('##########'),
+            'address_one' => fake()->address(),
+            'city_one' => fake()->city(),
+            'postal_code' => fake()->postcode(),
         ];
     }
 

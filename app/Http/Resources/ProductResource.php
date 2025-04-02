@@ -24,7 +24,8 @@ class ProductResource extends JsonResource
             'image' => $this->image , 
             'price' => $this->price , 
             'rating' => $this->rating , 
-            'category' => new CategoryResource($this->whenLoaded('category'))
+            'category' => new CategoryResource($this->whenLoaded('category')) , 
+            'firstActiveImage' => $this->firstActiveImage ,
         ] ; 
     }
 }

@@ -20,7 +20,8 @@ class CategoryFactory extends Factory
         return [
             'name' => $this->faker->word , 
             'image'  => asset('images/products/' . rand(1, 17) . '.png'),
-            'user_id' => User::factory()
+            'user_id' => User::factory(),
+            'path' => $this->faker->slug,
         ];
     }
 }
