@@ -5,18 +5,24 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\UserFilamentResource\Pages;
 use App\Filament\Resources\UserFilamentResource\RelationManagers;
 use App\Models\User;
+use App\Models\Merchant;
 use App\Models\UserFilament;
+use App\Notifications\MerchantApprovedNotification;
 use Filament\Forms;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
+use Filament\Tables\Actions\Action;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\Facades\DB;
 
 class UserFilamentResource extends Resource
 {
@@ -42,20 +48,86 @@ class UserFilamentResource extends Resource
     {
         return $table
             ->columns([
-                 TextColumn::make('name'),
-                 TextColumn::make('email'),
-                 TextColumn::make('role'),
+                TextColumn::make('name')
+                    ->searchable(),
+                TextColumn::make('email')
+                    ->searchable(),
+                TextColumn::make('type')
+                    ->badge()
+                    ->color(fn (string $state): string => match ($state) {
+                        'merchant' => 'warning',
+                        'admin' => 'danger',
+                        default => 'success',
+                    }),
+                IconColumn::make('is_approved')
+                    ->boolean()
+                    ->label('Approuvé')
+                    ->getStateUsing(function (User $record): bool {
+                        if (!$record->isMerchant()) {
+                            return true; // Non-marchands sont toujours considérés comme approuvés
+                        }
+                        
+                        $merchant = $record->merchant;
+                        return $merchant && $merchant->approval_status === 'approved';
+                    }),
             ])
             ->filters([
-                SelectFilter::make('role')
+                SelectFilter::make('type')
                     ->options([
-                        'marchant' => 'Marchant',
-                        'user' => 'User',
+                        'merchant' => 'Marchand',
+                        'customer' => 'Client',
+                        'admin' => 'Admin',
                     ]),
+                SelectFilter::make('approval_status')
+                    ->label('Statut d\'approbation')
+                    ->options([
+                        'pending' => 'En attente',
+                        'approved' => 'Approuvé',
+                        'rejected' => 'Rejeté',
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query
+                            ->when(
+                                $data['value'],
+                                fn (Builder $query, $value): Builder => $query->whereHas(
+                                    'merchant',
+                                    fn (Builder $query): Builder => $query->where('approval_status', $value)
+                                )
+                            );
+                    }),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
+                Action::make('approuveMarchand')
+                    ->label('Approuver')
+                    ->icon('heroicon-o-check-circle')
+                    ->color('success')
+                    ->visible(fn (User $record): bool => 
+                        $record->isMerchant() && 
+                        $record->merchant && 
+                        $record->merchant->approval_status === 'pending'
+                    )
+                    ->action(function (User $record): void {
+                        DB::transaction(function () use ($record) {
+                            $merchant = $record->merchant;
+                            $merchant->approval_status = 'approved';
+                            $merchant->save();
+                            
+                            // Mettre à jour le statut d'approbation de l'utilisateur
+                            $record->is_approved = true;
+                            $record->save();
+                            
+                            // Envoyer une notification par email
+                            $record->notify(new MerchantApprovedNotification($merchant));
+                            
+                            Notification::make()
+                                ->title('Marchand approuvé')
+                                ->success()
+                                ->body("Le marchand {$record->name} a été approuvé et notifié par email.")
+                                ->send();
+                        });
+                    }),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
