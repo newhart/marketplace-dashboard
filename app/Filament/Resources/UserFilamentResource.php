@@ -71,6 +71,7 @@ class UserFilamentResource extends Resource
                         return $merchant && $merchant->approval_status === 'approved';
                     }),
             ])
+            ->defaultSort('created_at', 'desc')
             ->filters([
                 SelectFilter::make('type')
                     ->options([
