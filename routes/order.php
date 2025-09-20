@@ -5,7 +5,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::middleware('auth:sanctum')->group(function () {
     // Route pour créer une commande
-    Route::post('/api/orders', [OrderController::class, 'store']);
+    Route::post('/orders', [OrderController::class, 'store']);
     
     // Routes pour les clients
     Route::prefix('api/customer')->group(function () {
@@ -14,12 +14,12 @@ Route::middleware('auth:sanctum')->group(function () {
     });
     
     // Routes pour les marchands
-    Route::prefix('api/merchant')->group(function () {
+    Route::prefix('/merchant')->group(function () {
         Route::get('/orders', [OrderController::class, 'merchantOrders']);
         Route::get('/orders/{id}', [OrderController::class, 'merchantOrderDetail']);
         Route::delete('/orders/{id}', [OrderController::class, 'cancelOrder']);
     });
     
     // Route pour générer une facture
-    Route::get('/api/orders/{id}/invoice', [OrderController::class, 'generateInvoice']);
+    Route::get('/orders/{id}/invoice', [OrderController::class, 'generateInvoice']);
 });

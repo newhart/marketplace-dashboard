@@ -47,7 +47,7 @@ class CustomerRegistrationController extends Controller
             'email' => $request->email,
             'password' => Hash::make($request->password),
             'type' => User::TYPE_CUSTOMER,
-            'phone_number' => $request->phone,
+            'phone' => $request->phone,
             'postal_address' => $request->postal_address,
             'geographic_address' => $request->geographic_address,
             'birth_date' => $request->birth_date,
