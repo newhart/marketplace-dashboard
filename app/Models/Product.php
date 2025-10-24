@@ -66,5 +66,62 @@ class Product extends Model
     {
         return $this->images()->where('is_main', true)->first();
     }
+
+    /**
+     * Get similar products based on category
+     */
+    public function getSimilarProducts(int $limit = 6)
+    {
+        return self::where('category_id', $this->category_id)
+            ->where('id', '!=', $this->id)
+            ->with(['category', 'images'])
+            ->inRandomOrder()
+            ->limit($limit)
+            ->get();
+    }
+
+    /**
+     * Get related products based on multiple criteria (advanced similarity)
+     */
+    public function getRelatedProducts(int $limit = 6)
+    {
+        // Produits de la même catégorie avec un score de similarité
+        $sameCategory = self::where('category_id', $this->category_id)
+            ->where('id', '!=', $this->id)
+            ->with(['category', 'images']);
+
+        // Si pas assez de produits dans la même catégorie, inclure d'autres catégories
+        $sameCategoryCount = $sameCategory->count();
+        
+        if ($sameCategoryCount < $limit) {
+            $remaining = $limit - $sameCategoryCount;
+            $otherProducts = self::where('category_id', '!=', $this->category_id)
+                ->with(['category', 'images'])
+                ->inRandomOrder()
+                ->limit($remaining)
+                ->get();
+                
+            return $sameCategory->get()->merge($otherProducts);
+        }
+
+        return $sameCategory->inRandomOrder()->limit($limit)->get();
+    }
+
+    /**
+     * Get recommended products based on price range
+     */
+    public function getRecommendedByPriceRange(int $limit = 6)
+    {
+        $priceVariation = $this->price * 0.3; // 30% de variation de prix
+        $minPrice = $this->price - $priceVariation;
+        $maxPrice = $this->price + $priceVariation;
+
+        return self::whereBetween('price', [$minPrice, $maxPrice])
+            ->where('id', '!=', $this->id)
+            ->with(['category', 'images'])
+            ->inRandomOrder()
+            ->limit($limit)
+            ->get();
+    }
     
 }

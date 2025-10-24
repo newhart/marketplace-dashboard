@@ -13,9 +13,9 @@ use Illuminate\Support\Facades\Storage;
 class ProductController extends Controller
 {
     public function __construct(public ProductService $productService) {}
-    public function show(Product $product)
+    public function show(Product $product, Request $request)
     {
-        return  response()->json($this->productService->show($product));
+        return response()->json($this->productService->show($product, $request));
     }
 
     public function suggestProduct(): JsonResponse
@@ -35,6 +35,33 @@ class ProductController extends Controller
     public function searchProduct(Request $request)
     {
         return response()->json($this->productService->searchProduct($request));
+    }
+
+    /**
+     * Get similar products for a specific product
+     */
+    public function getSimilarProducts(Product $product, Request $request): JsonResponse
+    {
+        $request->validate([
+            'type' => 'sometimes|in:category,related,price',
+            'limit' => 'sometimes|integer|min:1|max:12'
+        ]);
+
+        $type = $request->get('type', 'category');
+        $limit = $request->get('limit', 6);
+
+        $similarProducts = match($type) {
+            'related' => $product->getRelatedProducts($limit),
+            'price' => $product->getRecommendedByPriceRange($limit),
+            default => $product->getSimilarProducts($limit)
+        };
+
+        return response()->json([
+            'product_id' => $product->id,
+            'similar_type' => $type,
+            'similar_products' => ProductResource::collection($similarProducts),
+            'count' => $similarProducts->count()
+        ]);
     }
 
     public function store(Request $request): JsonResponse

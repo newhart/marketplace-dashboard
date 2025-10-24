@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Auth\CustomerRegistrationController;
+use App\Http\Controllers\Auth\CustomerSocialAuthController;
 use App\Http\Controllers\Api\CustomerProfileController;
 use Illuminate\Support\Facades\Route;
 
@@ -9,7 +10,12 @@ Route::post('/customer/register', [CustomerRegistrationController::class, 'regis
     ->middleware('guest')
     ->name('customer.register');
 
-// Social login/registration
+// Social authentication (improved)
+Route::post('/customer/social-auth', [CustomerSocialAuthController::class, 'socialAuth'])
+    ->middleware(['guest', 'throttle:10,1'])
+    ->name('customer.social.auth');
+
+// Legacy social registration (kept for compatibility)
 Route::post('/customer/social-register', [CustomerRegistrationController::class, 'socialRegister'])
     ->middleware('guest')
     ->name('customer.social.register');
@@ -22,5 +28,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/profile', [CustomerProfileController::class, 'update']);
         Route::post('/profile/change-password', [CustomerProfileController::class, 'changePassword']);
         Route::delete('/profile', [CustomerProfileController::class, 'deleteAccount']);
+        
+        // Social account management
+        Route::post('/link-social-account', [CustomerSocialAuthController::class, 'linkSocialAccount']);
+        Route::delete('/unlink-social-account', [CustomerSocialAuthController::class, 'unlinkSocialAccount']);
     });
 });
