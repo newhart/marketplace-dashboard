@@ -15,12 +15,4 @@ class RegisterService
 
         }
     }
-
-    private function clientRegister(array $data){
-
-    }
-
-    private function vendorRegister(array $data){
-
-    }
 }
