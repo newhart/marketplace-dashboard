@@ -101,17 +101,13 @@ class DatabaseSeeder extends Seeder
             $data = $response->json();
             $products = $data['products'] ?? [];
 
-            echo "📊 Nombre de produits reçus de l'API : " . count($products) . "\n";
-
             if (empty($products)) {
-                echo "⚠️ Aucun produit trouvé pour la catégorie {$category->name}\n";
                 continue;
             }
 
             $count = 0;
             $skipped = 0;
 
-            // Prendre seulement les 10 premiers produits pour éviter les timeouts
             $productsToProcess = array_slice($products, 0, 10);
 
             foreach ($productsToProcess as $index => $item) {
@@ -119,14 +115,10 @@ class DatabaseSeeder extends Seeder
                 $productCode = $item['code'] ?? null;
 
                 if (empty($productCode)) {
-                    echo "  ⚠️ Produit #{$index} ignoré : code produit manquant\n";
                     $skipped++;
                     continue;
                 }
 
-                echo "  🔍 Traitement du produit #{$index} avec le code : {$productCode}\n";
-
-                // Récupérer les détails complets du produit via l'API v0
                 $productDetailResponse = Http::get("https://world.openfoodfacts.org/api/v0/product/{$productCode}.json");
 
                 if (!$productDetailResponse->ok()) {
@@ -181,8 +173,7 @@ class DatabaseSeeder extends Seeder
                     $productImage = 'https://via.placeholder.com/400x400?text=' . urlencode($productName);
                 }
 
-                // Gestion du prix
-                $price = 10.0; // Prix par défaut
+                $price = 10.0;
                 if (isset($productData['product_quantity']) && !empty($productData['product_quantity'])) {
                     $price = rand(100, 1000) / 10;
                 }

@@ -39,8 +39,7 @@ class OrderService
                     'order_id' => $order->id,
                     'product_id' => $product->id,
                     'quantity' => $item['quantity'],
-                    'unit_price' => $product->price,
-                    'total_price' => $product->price * $item['quantity'],
+                    'price' => $product->price,
                 ]);
                 
                 // Notify the merchant who owns this product

@@ -15,7 +15,7 @@ class CheckRole
      */
     public function handle(Request $request, Closure $next, string $role): Response
     {
-        if (!$request->user() || $request->user()->role !== $role) {
+        if (!$request->user() || $request->user()->type !== $role) {
             return response()->json([
                 'message' => 'Unauthorized. You do not have permission to access this resource.'
             ], 403);

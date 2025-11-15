@@ -8,13 +8,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/orders', [OrderController::class, 'store']);
     
     // Routes pour les clients
-    Route::prefix('api/customer')->group(function () {
+    Route::prefix('customer')->group(function () {
         Route::get('/orders', [OrderController::class, 'customerOrders']);
         Route::get('/orders/{id}', [OrderController::class, 'customerOrderDetail']);
     });
     
     // Routes pour les marchands
-    Route::prefix('/merchant')->group(function () {
+    Route::prefix('merchant')->group(function () {
         Route::get('/orders', [OrderController::class, 'merchantOrders']);
         Route::get('/orders/{id}', [OrderController::class, 'merchantOrderDetail']);
         Route::delete('/orders/{id}', [OrderController::class, 'cancelOrder']);
