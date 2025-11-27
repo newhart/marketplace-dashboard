@@ -9,7 +9,10 @@ class CategoryService
 {
     public function rays()
     {
-        $categories = Category::limit(10)->get();
+        $categories = Category::has('products')
+            ->with('products')
+            ->limit(10)
+            ->get();
         return new CategoryCollection($categories);
     }
 }

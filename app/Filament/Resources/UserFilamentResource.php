@@ -34,13 +34,19 @@ class UserFilamentResource extends Resource
     {
         return $form
             ->schema([
-                TextInput::make('name'),
-                TextInput::make('email'),
-                Select::make('role')
+                TextInput::make('name')
+                    ->required(),
+                TextInput::make('email')
+                    ->email()
+                    ->required(),
+                Select::make('type')
                     ->options([
-                        'marchant' => 'Marchant',
-                        'user' => 'User',
-                    ]),
+                        'customer' => 'Client',
+                        'merchant' => 'Marchand',
+                        'seller' => 'Vendeur',
+                        'transporter' => 'Transporteur',
+                    ])
+                    ->required(),
             ]);
     }
 
@@ -77,7 +83,8 @@ class UserFilamentResource extends Resource
                     ->options([
                         'merchant' => 'Marchand',
                         'customer' => 'Client',
-                        'admin' => 'Admin',
+                        'seller' => 'Vendeur',
+                        'transporter' => 'Transporteur',
                     ]),
                 SelectFilter::make('approval_status')
                     ->label('Statut d\'approbation')

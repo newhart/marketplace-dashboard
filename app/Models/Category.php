@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Category extends Model
 {
     use HasFactory ; 
-    protected $fillable = ['name','created_by' , 'user_id'];
+    protected $fillable = ['name','created_by' , 'user_id' , 'parent_id' , 'image' , 'path'];
 
     public function user(): BelongsTo
     {
