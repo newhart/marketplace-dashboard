@@ -9,7 +9,7 @@ class CategoryService
 {
     public function rays()
     {
-        $categories = Category::has('products')
+        $categories = Category::whereHas('products')
             ->with('products')
             ->limit(10)
             ->get();
