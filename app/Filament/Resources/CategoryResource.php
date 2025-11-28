@@ -74,6 +74,7 @@ class CategoryResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->modifyQueryUsing(fn (Builder $query) => $query->whereNull('parent_id'))
             ->columns([
                 ImageColumn::make('image')
                     ->label('Image')
@@ -86,25 +87,11 @@ class CategoryResource extends Resource
                     ->sortable()
                     ->weight('bold'),
 
-                TextColumn::make('parent.name')
-                    ->label('Catégorie parent')
-                    ->searchable()
-                    ->sortable()
-                    ->badge()
-                    ->color('info')
-                    ->default('-'),
-
                 TextColumn::make('user.name')
                     ->label('Créateur')
                     ->searchable()
                     ->sortable()
                     ->color('secondary'),
-
-                TextColumn::make('children_count')
-                    ->label('Sous-catégories')
-                    ->counts('children')
-                    ->badge()
-                    ->color('success'),
 
                 TextColumn::make('products_count')
                     ->label('Produits')
