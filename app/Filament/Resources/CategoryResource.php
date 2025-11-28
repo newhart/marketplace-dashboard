@@ -74,7 +74,7 @@ class CategoryResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(fn (Builder $query) => $query->whereNull('parent_id'))
+            ->modifyQueryUsing(fn (Builder $query) => $query->whereHas('products'))
             ->columns([
                 ImageColumn::make('image')
                     ->label('Image')
