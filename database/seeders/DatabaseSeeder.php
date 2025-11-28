@@ -289,10 +289,41 @@ class DatabaseSeeder extends Seeder
         }
 
         $page = 1;
-        $remainingProducts = $this->productsToImport - $this->productsCreated;
+        $pageSize = 100;
+        $remainingProducts = $this->productsToImport;
+        $maxRetries = 3;
+        $retryDelay = 2; // secondes
 
-        while ($this->productsCreated < $this->productsToImport && $remainingProducts > 0) {
-            $response = Http::timeout(30)->get("https://world.openfoodfacts.org/category/{$slug}/{$page}.json");
+        while ($this->productsCreated < $this->productsToImport) {
+            $response = null;
+            $attempt = 0;
+            
+            // Retry strategy pour les timeouts
+            while ($attempt < $maxRetries && !$response) {
+                try {
+                    $response = Http::timeout(45)->get("https://world.openfoodfacts.org/category/{$slug}/{$page}.json");
+                    
+                    if (!$response->ok()) {
+                        echo "  Erreur HTTP {$response->status()} pour la catégorie {$categoryName}\n";
+                        $response = null;
+                    }
+                } catch (\Exception $e) {
+                    $attempt++;
+                    if ($attempt < $maxRetries) {
+                        echo "  Tentative {$attempt}/{$maxRetries} échouée, nouvelle tentative dans {$retryDelay}s...\n";
+                        sleep($retryDelay);
+                        $retryDelay *= 2; // Exponential backoff
+                    } else {
+                        echo "  Erreur de connexion après {$maxRetries} tentatives pour {$categoryName}\n";
+                        break 2; // Sortir de la boucle while principale
+                    }
+                }
+            }
+            
+            if (!$response) {
+                echo "  Impossible de récupérer les produits pour {$categoryName}\n";
+                break;
+            }
 
             if (!$response->ok()) {
                 echo "  ✗ Erreur lors de la récupération (page {$page})\n";
