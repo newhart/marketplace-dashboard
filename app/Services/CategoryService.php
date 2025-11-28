@@ -10,6 +10,7 @@ class CategoryService
     public function rays()
     {
         $categories = Category::whereHas('products')
+            ->whereNull('parent_id')
             ->with('products')
             ->limit(10)
             ->get();
