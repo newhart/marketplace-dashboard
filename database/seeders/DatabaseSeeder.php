@@ -280,8 +280,8 @@ class DatabaseSeeder extends Seeder
      */
     private function importProductsFromCategory(string $slug, string $categoryName, $merchants, $allUsers): void
     {
-        // Récupérer toutes les sous-catégories disponibles
-        $availableCategories = Category::whereNotNull('parent_id')->get();
+        // Récupérer toutes les catégories parent uniquement
+        $availableCategories = Category::whereNull('parent_id')->get();
         
         if ($availableCategories->isEmpty()) {
             echo "  ✗ Aucune catégorie disponible\n";
@@ -386,166 +386,121 @@ class DatabaseSeeder extends Seeder
     {
         $categories = array_map('trim', explode(',', $productCategories));
         
-        // Mots-clés de correspondance précis avec VOS catégories
+        // Mots-clés de correspondance précis avec les catégories PARENT
         $keywordMap = [
             // Produits laitiers, oeufs, Fromages
             'dairy|milk|cheese|yogurt|fromage|lait|yaourt|cream|butter|beurre|crème' => [
-                'Crémerie, oeufs, laits, boissons végétales', 
-                'Fromages', 
-                'Yaourts, desserts',
-                'Desserts, fromages enfant'
+                'Produits laitiers, oeufs, Fromages'
             ],
             
             // Boucherie, volaille, poissonerie
             'meat|poultry|fish|seafood|viande|volaille|poisson|crustace|steak|beef|pork|chicken|turkey|salmon|tuna|cod' => [
-                'Boucherie', 
-                'Volaille, lapin', 
-                'Poissons, crustacés',
-                'Traiteur de la mer',
-                'Pané, nuggets, grignottes'
+                'Boucherie, volaille, poissonerie'
             ],
             
             // Pain, pâtisserie
             'bread|pastry|cake|biscuit|pain|patisserie|gateau|viennoiserie|croissant|baguette|brioche|toast|burger bun' => [
-                'Pains, pâtisseries fraîches', 
-                'Pains de mie', 
-                'Pains burger, pain du monde',
-                'Brioches, pains au lait emballés',
-                'Pains apéritif, taosts',
-                'Pains précuits, pâtisseries surgelées'
+                'Pain, pâtisserie'
             ],
             
-            // Petit déjeuner - CORRIGÉ
-            'breakfast|petit-dejeuner|cereals|cereal|granola|muesli|porridge|oatmeal' => [
-                'Petit déjeuner',
-                'Cafés',
-                'Thés, infusions, chocolat en poudre',
-                'Biscuits',
-                'Compotes, crémes dessert'
+            // Epicerie sucrée
+            'coffee|tea|chocolate|candy|sweet|sugar|cacao|bonbon|confiserie|cookie|gateau|dessert|sucrerie|cereals|cereal|granola|muesli|breakfast|petit-dejeuner' => [
+                'Epicerie sucrée'
             ],
             
-            // Epicerie sucrée - SÉPARÉ
-            'coffee|tea|chocolate|candy|sweet|sugar|cacao|bonbon|confiserie|cookie|gateau|dessert|sucrerie' => [
-                'Cafés', 
-                'Thés, infusions, chocolat en poudre', 
-                'Gâteaux moelleux',
-                'Chocolats',
-                'Bonbons, confiseries',
-                'Compotes, crémes dessert',
-                'Sucres, farine, aides à la patisseries'
-            ],
-            
-            // Eaux, jus, soda, thés glacés - SANS BEVERAGES
+            // Eaux, jus, soda, thés glacés
             'water|juice|soda|drink|eau|jus|boisson|soft drink|nectar|sirop|thé glacé|ice tea|smoothie|milkshake' => [
-                'Eaux', 
-                'Jus de fruits, jus de légumes', 
-                'Colas, boissons gazeuses, énergisantes',
-                'Thés, boissons plates aux fruits',
-                'Sirops, concentrés',
-                'Bières, vins et apéritifs sans alcool',
-                'Lait, boissons végétales'
-            ],
-            
-            // Produits végétaux et bio - SÉPARÉ
-            'plant-based|vegetable-based|vegan|vegetarian|bio|organic|naturel|nature|beverages|preparations|aliments|boissons|foods' => [
-                'Bio et écologique',
-                'Végétarien, vegan', 
-                'Fruits, légumes bio',
-                'Produits du monde'
+                'Eaux, jus, soda, thés glacés'
             ],
             
             // Hygiène, beauté
             'soap|shampoo|toothpaste|hygiene|beauty|care|soins|cosmetic|makeup|dental|cream|lotion|deodorant|perfume' => [
-                'Hygiène dentaire',
-                'Soins du corps', 
-                'Soins des cheveux', 
-                'Soins du visages, maquillage',
-                'Soins homme',
-                'Mouchoirs, papier toilette, cotons',
-                'Protections hygièniques',
-                'Petite parapharmacie'
+                'Hygiène, beauté'
             ],
             
             // Tout pour bébé
             'baby|infant|bebe|toddler|diaper|formula|baby food|puériculture|couche|lait bébé|repas bébé' => [
-                'Laits, petits-déjeuners de bébé',
-                'Repas de bébé', 
-                'Tout pour bébé', 
-                'Desserts, goûters, jus',
-                'Couches, toilette de bébé',
-                'Puériculture',
-                'Vêtements, chaussures bébé'
+                'Tout pour bébé'
             ],
             
-            // Bio et nutrition - SANS DOUBLONS
-            'gluten-free|lactose-free|diet|sport|supplement|nutrition|protein|allergen-free|light|dietetic|complement|wellness|fitness|muscle|energy|vitamins|minerals' => [
-                'Sans gluten', 
-                'Sans lactose',
-                'Sans sucres, sans sucres ajoutés',
-                'Nutrition sportive',
-                'Compléments alimentaires',
-                'Produits allégés, bien-être'
+            // Bio et nutrition
+            'gluten-free|lactose-free|diet|sport|supplement|nutrition|protein|allergen-free|light|dietetic|complement|wellness|fitness|muscle|energy|vitamins|minerals|bio|organic|naturel|nature|plant-based|vegetable-based|vegan|vegetarian' => [
+                'Bio et nutrition'
             ],
             
-            // Fruits, légumes - PLUS PRÉCIS
-            'fruit|vegetable|produce|legume|apple|banana|orange|tomato|carrot|potato|onion|garlic|salad|greens|fresh|citrus|berry|strawberry|pear|peach|grape|melon|pineapple' => [
-                'Fruits frais', 
-                'Légumes', 
-                'Fruits secs, graines', 
-                'Légumes prêts à consommer',
-                'Jus de fruits frais',
-                'Fleurs, plantes'
-            ],
-            
-            // Surgelés
-            'frozen|ice-cream|pizza|surgele|glace|frozen food|congelé|surgelé|frozen vegetables|frozen meat|frozen fish' => [
-                'Pizzas', 
-                'Apéritifs, plats cuisinés, produits du monde',
-                'Légumes, fruits', 
-                'Frites, prommes de terre',
-                'Viandes', 
-                'Poissons, fruits de mer', 
-                'Glaces',
-                'Pâtisseries, viennoiseries'
-            ],
-            
-            // Epicerie salée
-            'pasta|rice|cereal|breakfast|pates|riz|noodle|couscous|quinoa|semoule|legumes secs|conserves|soup|sauce|oil|vinegar|salt|pepper|spice|herb' => [
-                'Apéritif',
-                'Sauces, huiles, aides culinaires', 
-                'Conserves, soupes', 
-                'Pâtes', 
-                'Riz, semoules, légumes secs',
-                'Plats cuisinés',
-                'Epiceries du monde'
-            ],
-            
-            // Vins, bières, alcools
-            'beer|wine|spirits|alcohol|biere|vin|champagne|cocktail|whiskey|vodka|rum|gin|cider|aperitif|digestif' => [
-                'Bières, fûts, cidres', 
-                'Apéritifs, spiritueux', 
-                'Vins', 
-                'Champagnes, vins effervescents',
-                'Cocktails à faire soi-même',
-                'Bières, vins et apéritifs sans alcool'
+            // Fruits, légumes
+            'fruit|vegetable|legume|fruit|bio|frais|sec|graine|jus frais|fleur|plante' => [
+                'Fruits, légumes'
             ],
             
             // Charcuterie, traiteur
-            'charcuterie|saucisson|ham|bacon|salami|paté|rillettes|traiteur|plats cuisines|snacking|salade|ready meal|tapas|apéritif|tartinable' => [
-                'Charcuterie',
-                'Traiteur', 
-                'Plats suicinés, snacking, salade', 
-                'Traiteur végétal',
-                'Apéritifs, tartinables'
+            'charcuterie|traiteur|salade|snacking|apéritif|tartinable|végétal|plats cuisinés' => [
+                'Charcuterie, traiteur'
+            ],
+            
+            // Surgelés
+            'frozen|surgelé|pizza|glace|apéritif|plats cuisinés|légume|fruit|frite|pomme de terre|viande|poisson|fruit de mer|pâtisserie|viennoiserie' => [
+                'Surgelés'
+            ],
+            
+            // Epicerie salée
+            'salt|salé|apéritif|sauce|huile|culinaire|conserve|soupe|pâte|riz|semoule|légume sec|plat cuisiné|épicerie du monde' => [
+                'Epicerie salée'
+            ],
+            
+            // Vins, bières, alcools
+            'wine|beer|alcohol|vin|bière|cidre|apéritif|spiritueux|champagne|cocktail|sans alcool' => [
+                'Vins, bières, alcools'
+            ],
+            
+            // Entretien, accessoires de la maison
+            'paper|toilet|tissue|towel|laundry|detergent|cleaning|trash|bag|accessory|kitchen|home|school|office|supply' => [
+                'Entretien, accessoires de la maison'
+            ],
+            
+            // Animalerie
+            'pet|animal|cat|dog|chat|chien|bird|fish|rongeur|accessory' => [
+                'Animalerie'
+            ],
+            
+            // Jouets, jeux vidéo, livres
+            'toy|game|video game|book|livre|sport|outdoor|déguisement|creative|art|coffret|cadeau|marque' => [
+                'Jouets, jeux vidéo, livres'
+            ],
+            
+            // Electroménager, cuisine
+            'appliance|kitchen|electroménager|cuisine|aspirateur|cleaning|beauty|well-being|climatisation|heating|ironing|sewing|dryer' => [
+                'Electroménager, cuisine'
+            ],
+            
+            // Mode, bijoux, bagagerie
+            'fashion|jewelry|bag|luggage|clothing|shoes|woman|man|child|baby|bijoux|vêtement|chaussure|maroquinerie' => [
+                'Mode, bijoux, bagagerie'
+            ],
+            
+            // Billetterie, traiteur, voyage
+            'ticket|travel|gift card|voyage|photo|traiteur|télécom|coffret|cadeau' => [
+                'Billetterie, traiteur, voyage'
+            ],
+            
+            // Jardin, auto, brico
+            'garden|diy|auto|motorcycle|bricolage|accessoire' => [
+                'Jardin, auto, brico'
+            ],
+            
+            // High-tech, téléphonie
+            'high-tech|phone|tv|video projector|home cinema|computer|audio|hifi|connected object|urban mobility|photo|camera|reconditionned' => [
+                'High-tech, téléphonie'
+            ],
+            
+            // Meuble, linge de maison
+            'furniture|sofa|linen|decoration|bedding|literie|meuble|linge de maison' => [
+                'Meuble, linge de maison'
             ],
             
             // Produits du monde
             'asian|chinese|japanese|thai|indian|italian|mexican|halal|kosher|world cuisine|ethnic|spicy|curry|sushi|pizza|pasta|tacos' => [
-                'Asie',
-                'Moyen-Orient, Halal', 
-                'Tex Mex', 
-                'Italie', 
-                'Autres produits du monde'
+                'Produits du monde'
             ],
             
             // Entretien, maison
@@ -588,119 +543,116 @@ class DatabaseSeeder extends Seeder
             // Priorité 1: Correspondances exactes de mots-clés spécifiques
             $specificMatches = [
                 // CATÉGORIES IMPORTANTES - PRIORITÉ MAXIMALE
-                'plant-based foods and beverages' => ['Bio et écologique'],
-                'plant-based foods' => ['Bio et écologique'],
-                'fruits-and-vegetables-based-foods' => ['Fruits, légumes bio'],
-                'dairy-substitutes' => ['Crémerie, oeufs, laits, boissons végétales'],
+                'plant-based foods and beverages' => ['Bio et nutrition'],
+                'plant-based foods' => ['Bio et nutrition'],
+                'fruits-and-vegetables-based-foods' => ['Fruits, légumes'],
+                'dairy-substitutes' => ['Produits laitiers, oeufs, Fromages'],
                 
                 // PETIT DÉJEUNER
-                'petit-dejeuner' => ['Petit déjeuner'],
-                'breakfasts' => ['Petit déjeuner'],
-                'breakfast-cereals' => ['Petit déjeuner'],
-                'cereals-and-potatoes' => ['Riz, semoules, légumes secs'],
-                'cereals-and-their-products' => ['Pâtes', 'Riz, semoules, légumes secs'],
-                'mixed nuts' => ['Fruits secs, graines'],
-                'nuts-and-their-products' => ['Fruits secs, graines'],
-                'nuts' => ['Fruits secs, graines'],
-                'seeds' => ['Fruits secs, graines'],
-                'cheeses' => ['Fromages'],
-                'cow-cheeses' => ['Fromages'],
-                'dairies' => ['Crémerie, oeufs, laits, boissons végétales'],
-                'dairy-desserts' => ['Yaourts, desserts'],
-                'dairy-substitutes' => ['Crémerie, oeufs, laits, boissons végétales'],
-                'milks' => ['Crémerie, oeufs, laits, boissons végétales'],
-                'yogurts' => ['Yaourts, desserts'],
-                'fermented-milk-products' => ['Fromages', 'Yaourts, desserts'],
-                'wines' => ['Vins'],
-                'alcoholic-beverages' => ['Bières, fûts, cidres', 'Vins', 'Apéritifs, spiritueux'],
-                'beers' => ['Bières, fûts, cidres'],
-                'waters' => ['Eaux'],
-                'beverages' => ['Eaux', 'Jus de fruits, jus de légumes', 'Colas, boissons gazeuses, énergisantes'],
-                'plant-based-beverages' => ['Lait, boissons végétales'],
-                'fruit-based-beverages' => ['Jus de fruits, jus de légumes'],
-                'hot-beverages' => ['Cafés', 'Thés, infusions, chocolat en poudre'],
-                'carbonated-drinks' => ['Colas, boissons gazeuses, énergisantes'],
-                'coffees' => ['Cafés'],
-                'teas' => ['Thés, infusions, chocolat en poudre'],
-                'chocolates' => ['Chocolats'],
-                'cocoa-and-its-products' => ['Chocolats'],
-                'chocolate-candies' => ['Chocolats', 'Bonbons, confiseries'],
-                'confectioneries' => ['Bonbons, confiseries'],
-                'candies' => ['Bonbons, confiseries'],
-                'sweet-snacks' => ['Bonbons, confiseries', 'Gâteaux moelleux'],
-                'salty-snacks' => ['Apéritif'],
-                'snacks' => ['Apéritif'],
-                'biscuits-and-cakes' => ['Gâteaux moelleux', 'Biscuits'],
-                'biscuits-and-crackers' => ['Biscuits', 'Pains apéritif, taosts'],
-                'biscuits' => ['Biscuits'],
-                'cakes' => ['Gâteaux moelleux'],
-                'breads' => ['Pains, pâtisseries fraîches'],
-                'pastas' => ['Pâtes'],
-                'spreads' => ['Apéritifs, tartinables'],
-                'sweet-spreads' => ['Compotes, crémes dessert'],
-                'salted-spreads' => ['Apéritifs, tartinables'],
-                'plant-based-spreads' => ['Apéritifs, tartinables'],
-                'sauces' => ['Sauces, huiles, aides culinaires'],
-                'condiments' => ['Sauces, huiles, aides culinaires'],
-                'vegetable-oils' => ['Sauces, huiles, aides culinaires'],
-                'fats' => ['Sauces, huiles, aides culinaires'],
-                'vegetable-fats' => ['Sauces, huiles, aides culinaires'],
-                'olive-tree-products' => ['Sauces, huiles, aides culinaires'],
-                'honeys' => ['Compotes, crémes dessert'],
-                'bee-products' => ['Compotes, crémes dessert'],
-                'jams' => ['Compotes, crémes dessert'],
-                'sweeteners' => ['Sucres, farine, aides à la patisseries'],
-                'sugars' => ['Sucres, farine, aides à la patisseries'],
-                'soups' => ['Conserves, soupes'],
-                'canned-foods' => ['Conserves, soupes'],
-                'canned-vegetables' => ['Conserves, soupes'],
-                'canned-plant-based-foods' => ['Conserves, soupes'],
-                'baby foods' => ['Repas de bébé'],
-                'diapers' => ['Couches, toilette de bébé'],
-                'soaps' => ['Soins du corps'],
-                'shampoos' => ['Soins des cheveux'],
-                'toothpastes' => ['Hygiène dentaire'],
-                'plant-based foods and beverages' => ['Bio et écologique'],
-                'plant-based foods' => ['Bio et écologique'],
-                'dried-plant-based-foods' => ['Fruits secs, graines'],
-                'fruits-and-vegetables-based-foods' => ['Fruits, légumes bio'],
-                'fruits-based-foods' => ['Fruits frais'],
-                'vegetables-based-foods' => ['Légumes'],
-                'vegetables' => ['Légumes'],
-                'fruits' => ['Fruits frais'],
-                'legumes' => ['Riz, semoules, légumes secs'],
-                'legumes-and-their-products' => ['Riz, semoules, légumes secs'],
-                'meats-and-their-products' => ['Boucherie'],
-                'meats' => ['Boucherie'],
-                'prepared-meats' => ['Charcuterie'],
-                'hams' => ['Charcuterie'],
-                'sausages' => ['Charcuterie'],
-                'chicken-and-its-products' => ['Volaille, lapin'],
-                'chickens' => ['Volaille, lapin'],
-                'poultries' => ['Volaille, lapin'],
-                'fishes-and-their-products' => ['Poissons, crustacés'],
-                'fishes' => ['Poissons, crustacés'],
-                'seafood' => ['Poissons, crustacés'],
-                'fatty-fishes' => ['Poissons, crustacés'],
+                'petit-dejeuner' => ['Epicerie sucrée'],
+                'breakfasts' => ['Epicerie sucrée'],
+                'breakfast-cereals' => ['Epicerie sucrée'],
+                'cereals-and-potatoes' => ['Epicerie salée'],
+                'cereals-and-their-products' => ['Epicerie salée'],
+                'mixed nuts' => ['Fruits, légumes'],
+                'nuts-and-their-products' => ['Fruits, légumes'],
+                'nuts' => ['Fruits, légumes'],
+                'seeds' => ['Fruits, légumes'],
+                'cheeses' => ['Produits laitiers, oeufs, Fromages'],
+                'cow-cheeses' => ['Produits laitiers, oeufs, Fromages'],
+                'dairies' => ['Produits laitiers, oeufs, Fromages'],
+                'dairy-desserts' => ['Produits laitiers, oeufs, Fromages'],
+                'dairy-substitutes' => ['Produits laitiers, oeufs, Fromages'],
+                'milks' => ['Produits laitiers, oeufs, Fromages'],
+                'yogurts' => ['Produits laitiers, oeufs, Fromages'],
+                'fermented-milk-products' => ['Produits laitiers, oeufs, Fromages'],
+                'wines' => ['Vins, bières, alcools'],
+                'alcoholic-beverages' => ['Vins, bières, alcools'],
+                'beers' => ['Vins, bières, alcools'],
+                'waters' => ['Eaux, jus, soda, thés glacés'],
+                'beverages' => ['Eaux, jus, soda, thés glacés'],
+                'plant-based-beverages' => ['Eaux, jus, soda, thés glacés'],
+                'fruit-based-beverages' => ['Eaux, jus, soda, thés glacés'],
+                'hot-beverages' => ['Epicerie sucrée'],
+                'carbonated-drinks' => ['Eaux, jus, soda, thés glacés'],
+                'coffees' => ['Epicerie sucrée'],
+                'teas' => ['Epicerie sucrée'],
+                'chocolates' => ['Epicerie sucrée'],
+                'cocoa-and-its-products' => ['Epicerie sucrée'],
+                'chocolate-candies' => ['Epicerie sucrée'],
+                'confectioneries' => ['Epicerie sucrée'],
+                'candies' => ['Epicerie sucrée'],
+                'sweet-snacks' => ['Epicerie sucrée'],
+                'salty-snacks' => ['Charcuterie, traiteur'],
+                'snacks' => ['Charcuterie, traiteur'],
+                'biscuits-and-cakes' => ['Epicerie sucrée'],
+                'biscuits-and-crackers' => ['Pain, pâtisserie'],
+                'biscuits' => ['Pain, pâtisserie'],
+                'cakes' => ['Pain, pâtisserie'],
+                'breads' => ['Pain, pâtisserie'],
+                'pastas' => ['Epicerie salée'],
+                'spreads' => ['Charcuterie, traiteur'],
+                'sweet-spreads' => ['Epicerie sucrée'],
+                'salted-spreads' => ['Charcuterie, traiteur'],
+                'plant-based-spreads' => ['Charcuterie, traiteur'],
+                'sauces' => ['Epicerie salée'],
+                'condiments' => ['Epicerie salée'],
+                'vegetable-oils' => ['Epicerie salée'],
+                'fats' => ['Epicerie salée'],
+                'vegetable-fats' => ['Epicerie salée'],
+                'olive-tree-products' => ['Epicerie salée'],
+                'honeys' => ['Epicerie sucrée'],
+                'bee-products' => ['Epicerie sucrée'],
+                'jams' => ['Epicerie sucrée'],
+                'sweeteners' => ['Epicerie sucrée'],
+                'sugars' => ['Epicerie sucrée'],
+                'soups' => ['Epicerie salée'],
+                'canned-foods' => ['Epicerie salée'],
+                'canned-vegetables' => ['Epicerie salée'],
+                'canned-plant-based-foods' => ['Epicerie salée'],
+                'baby foods' => ['Tout pour bébé'],
+                'diapers' => ['Tout pour bébé'],
+                'soaps' => ['Hygiène, beauté'],
+                'shampoos' => ['Hygiène, beauté'],
+                'toothpastes' => ['Hygiène, beauté'],
+                'dried-plant-based-foods' => ['Fruits, légumes'],
+                'fruits-based-foods' => ['Fruits, légumes'],
+                'vegetables-based-foods' => ['Fruits, légumes'],
+                'vegetables' => ['Fruits, légumes'],
+                'fruits' => ['Fruits, légumes'],
+                'legumes' => ['Epicerie salée'],
+                'legumes-and-their-products' => ['Epicerie salée'],
+                'meats-and-their-products' => ['Boucherie, volaille, poissonerie'],
+                'meats' => ['Boucherie, volaille, poissonerie'],
+                'prepared-meats' => ['Charcuterie, traiteur'],
+                'hams' => ['Charcuterie, traiteur'],
+                'sausages' => ['Charcuterie, traiteur'],
+                'chicken-and-its-products' => ['Boucherie, volaille, poissonerie'],
+                'chickens' => ['Boucherie, volaille, poissonerie'],
+                'poultries' => ['Boucherie, volaille, poissonerie'],
+                'fishes-and-their-products' => ['Boucherie, volaille, poissonerie'],
+                'fishes' => ['Boucherie, volaille, poissonerie'],
+                'seafood' => ['Boucherie, volaille, poissonerie'],
+                'fatty-fishes' => ['Boucherie, volaille, poissonerie'],
                 'frozen-foods' => ['Surgelés'],
-                'frozen-desserts' => ['Glaces'],
-                'ice-creams-and-sorbets' => ['Glaces'],
-                'desserts' => ['Gâteaux moelleux', 'Yaourts, desserts'],
-                'meals' => ['Plats cuisinés'],
-                'meals-with-meat' => ['Plats cuisinés'],
-                'appetizers' => ['Apéritif'],
-                'crisps' => ['Apéritif'],
-                'chips-and-fries' => ['Frites, prommes de terre'],
-                'pizzas-pies-and-quiches' => ['Pizzas'],
-                'dietary-supplements' => ['Compléments alimentaires'],
-                'fermented-foods' => ['Bio et écologique'],
-                'farming-products' => ['Fruits, légumes bio'],
+                'frozen-desserts' => ['Surgelés'],
+                'ice-creams-and-sorbets' => ['Surgelés'],
+                'desserts' => ['Epicerie sucrée'],
+                'meals' => ['Charcuterie, traiteur'],
+                'meals-with-meat' => ['Charcuterie, traiteur'],
+                'appetizers' => ['Charcuterie, traiteur'],
+                'crisps' => ['Charcuterie, traiteur'],
+                'chips-and-fries' => ['Surgelés'],
+                'pizzas-pies-and-quiches' => ['Surgelés'],
+                'dietary-supplements' => ['Bio et nutrition'],
+                'fermented-foods' => ['Bio et nutrition'],
+                'farming-products' => ['Fruits, légumes'],
                 'groceries' => ['Epicerie salée'],
-                'dried-products' => ['Fruits secs, graines'],
-                'fruit-and-vegetable-preserves' => ['Compotes, crémes dessert'],
-                'fruit-juices' => ['Jus de fruits, jus de légumes'],
-                'juices-and-nectars' => ['Jus de fruits, jus de légumes'],
-                'beverages-and-beverages-preparations' => ['Eaux', 'Jus de fruits, jus de légumes'],
+                'dried-products' => ['Fruits, légumes'],
+                'fruit-and-vegetable-preserves' => ['Epicerie sucrée'],
+                'fruit-juices' => ['Eaux, jus, soda, thés glacés'],
+                'juices-and-nectars' => ['Eaux, jus, soda, thés glacés'],
+                'beverages-and-beverages-preparations' => ['Eaux, jus, soda, thés glacés'],
             ];
             
             foreach ($specificMatches as $specificTerm => $targetCategories) {
@@ -721,7 +673,7 @@ class DatabaseSeeder extends Seeder
             // Priorité 2: Mots-clés généraux par ordre de précision
             foreach ($keywordMap as $pattern => $targetCategories) {
                 if (preg_match('/' . $pattern . '/i', $productCatLower)) {
-                    // Trouver une sous-catégorie correspondante
+                    // Trouver une catégorie parent correspondante
                     foreach ($targetCategories as $targetName) {
                         $category = $availableCategories->first(function ($cat) use ($targetName) {
                             return strtolower($cat->name) === strtolower($targetName);
