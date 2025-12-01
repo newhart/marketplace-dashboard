@@ -10,7 +10,6 @@ class CategoryService
     public function rays()
     {
         $categories = Category::whereHas('products')
-            ->limit(10)
             ->get();
         return new CategoryCollection($categories);
     }
