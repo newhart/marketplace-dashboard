@@ -37,7 +37,7 @@ class MerchantOrderNotification extends Notification implements ShouldQueue
      */
     public function via($notifiable)
     {
-        return ['mail', 'database'];
+        return ['mail', 'database', 'broadcast'];
     }
 
     /**
@@ -50,7 +50,7 @@ class MerchantOrderNotification extends Notification implements ShouldQueue
     {
         $orderItem = $this->order->items()->where('product_id', $this->product->id)->first();
         $quantity = $orderItem ? $orderItem->quantity : 0;
-        
+
         return (new MailMessage)
             ->subject('Nouvelle commande pour votre produit')
             ->greeting('Bonjour ' . $notifiable->name . '!')
@@ -63,6 +63,29 @@ class MerchantOrderNotification extends Notification implements ShouldQueue
     }
 
     /**
+     * Get the broadcastable representation of the notification.
+     *
+     * @param mixed $notifiable
+     * @return array
+     */
+    public function toBroadcast($notifiable)
+    {
+        $orderItem = $this->order->items()->where('product_id', $this->product->id)->first();
+
+        return [
+            'order_id' => $this->order->id,
+            'product_id' => $this->product->id,
+            'product_name' => $this->product->name,
+            'quantity' => $orderItem ? $orderItem->quantity : 0,
+            'total_price' => $orderItem ? $orderItem->total_price : 0,
+            'user_id' => $this->order->user_id,
+            'user_name' => $this->order->user->name,
+            'message' => 'Nouvelle commande pour votre produit ' . $this->product->name,
+            'type' => 'merchant_order',
+        ];
+    }
+
+    /**
      * Get the array representation of the notification.
      *
      * @param mixed $notifiable
@@ -71,7 +94,7 @@ class MerchantOrderNotification extends Notification implements ShouldQueue
     public function toArray($notifiable)
     {
         $orderItem = $this->order->items()->where('product_id', $this->product->id)->first();
-        
+
         return [
             'order_id' => $this->order->id,
             'product_id' => $this->product->id,

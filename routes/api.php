@@ -24,6 +24,10 @@ Route::get('/ping', [HealthCheckController::class, 'ping']);
 Route::get('/health', [HealthCheckController::class, 'check']);
 Route::get('/server-info', [HealthCheckController::class, 'serverInfo']);
 
+// Promotional Banners
+Route::get('/promotional-banners', [App\Http\Controllers\Api\PromotionalBannerController::class, 'index']);
+
+
 Route::middleware(['auth:sanctum'])->get('/user', function (Request $request) {
     return $request->user();
 });
