@@ -15,13 +15,19 @@ class ProductResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
+        $imageUrl = null;
+        if ($this->relationLoaded('images') && $this->images->count() > 0) {
+            $imagePath = $this->images[0]->path;
+            $imageUrl = asset('storage/' . $imagePath);
+        }
+
         return  [
             'id' => $this->id , 
             'name' => $this->name , 
             'short_description' => $this->short_description ,
             'unit' => $this->unit ,
             'description' => $this->description , 
-            'image' => $this->image , 
+            'image' => $imageUrl ?? $this->image, 
             'price' => $this->price , 
             'rating' => $this->rating , 
             'category' => new CategoryResource($this->whenLoaded('category')) , 

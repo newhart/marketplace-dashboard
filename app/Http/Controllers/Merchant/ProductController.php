@@ -81,7 +81,6 @@ class ProductController extends Controller
         // Handle image upload
         if ($request->hasFile('image')) {
             $path = $request->file('image')->store('products', 'public');
-            
             // Create image record
             $product->images()->create([
                 'path' => $path,
