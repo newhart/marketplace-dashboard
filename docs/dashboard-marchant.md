@@ -99,38 +99,54 @@ Récupère les informations générales du tableau de bord du marchand, y compri
 GET /merchant/products
 ```
 
-Récupère la liste de tous les produits du marchand.
+Récupère la liste paginée des produits du marchand.
+
+**Paramètres de requête**
+
+| Nom | Type | Description |
+|-----|------|-------------|
+| per_page | integer | Nombre d'éléments par page (défaut: 15, min: 1, max: 50) |
+| page | integer | Page courante (défaut: 1) |
 
 **Réponse**
 
 ```json
-[
-  {
-    "id": 1,
-    "name": "Produit 1",
-    "description": "Description du produit 1",
-    "price": 10.99,
-    "price_promo": null,
-    "category_id": 1,
-    "user_id": 1,
-    "stock": 50,
-    "origin": "France",
-    "unit": "kg",
-    "created_at": "2025-05-29T10:00:00.000000Z",
-    "updated_at": "2025-05-29T10:00:00.000000Z",
-    "category": {
+{
+  "data": [
+    {
       "id": 1,
-      "name": "Catégorie 1"
-    },
-    "images": [
-      {
+      "name": "Produit 1",
+      "description": "Description du produit 1",
+      "price": 10.99,
+      "price_promo": null,
+      "category_id": 1,
+      "user_id": 1,
+      "stock": 50,
+      "origin": "France",
+      "unit": "kg",
+      "created_at": "2025-05-29T10:00:00.000000Z",
+      "updated_at": "2025-05-29T10:00:00.000000Z",
+      "category": {
         "id": 1,
-        "path": "products/image1.jpg",
-        "is_main": true
-      }
-    ]
+        "name": "Catégorie 1"
+      },
+      "images": [
+        {
+          "id": 1,
+          "path": "products/image1.jpg",
+          "is_main": true
+        }
+      ]
+    }
+  ],
+  "pagination": {
+    "total": 42,
+    "count": 15,
+    "per_page": 15,
+    "current_page": 1,
+    "total_pages": 3
   }
-]
+}
 ```
 
 #### Afficher un produit spécifique

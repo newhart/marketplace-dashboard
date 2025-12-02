@@ -14,7 +14,7 @@ class PromotionalBannerController extends Controller
     public function index()
     {
         $banners = PromotionalBanner::active()
-            ->current()
+            // ->current()
             ->orderBy('display_order', 'asc')
             ->get()
             ->map(function ($banner) {

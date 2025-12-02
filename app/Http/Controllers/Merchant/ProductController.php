@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Merchant;
 use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Models\Product;
+use App\Http\Resources\ProductCollection;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -15,14 +16,17 @@ class ProductController extends Controller
     /**
      * Display a listing of the merchant's products
      */
-    public function index()
+    public function index(Request $request)
     {
+        $perPage = (int) $request->get('per_page', 15);
+        $perPage = max(1, min($perPage, 50));
+
         $products = Product::where('user_id', Auth::id())
             ->with(['category', 'images'])
             ->latest()
-            ->get();
-        
-        return response()->json($products);
+            ->paginate($perPage);
+
+        return new ProductCollection($products);
     }
 
     /**
