@@ -53,9 +53,9 @@ class ProductController extends Controller
             'price_promo' => 'nullable|numeric|min:0',
             'category_id' => 'required|exists:categories,id',
             'origin' => 'nullable|string|max:255',
-            'unit' => 'required|string',
+            'unity' => 'required|string',
             'stock' => 'nullable|integer|min:0',
-            'photo' => 'nullable|image|max:2048',
+            'image' => 'nullable|image|max:2048',
         ]);
 
         if ($validator->fails()) {
@@ -75,12 +75,12 @@ class ProductController extends Controller
             'user_id' => Auth::id(),
             'stock' => $request->stock ?? 0,
             'origin' => $request->origin,
-            'unit' => $request->unit,
+            'unity' => $request->unity,
         ]);
 
         // Handle image upload
-        if ($request->hasFile('photo')) {
-            $path = $request->file('photo')->store('products', 'public');
+        if ($request->hasFile('image')) {
+            $path = $request->file('image')->store('products', 'public');
             
             // Create image record
             $product->images()->create([
@@ -142,9 +142,9 @@ class ProductController extends Controller
             'price_promo' => 'nullable|numeric|min:0',
             'category_id' => 'required|exists:categories,id',
             'origin' => 'nullable|string|max:255',
-            'unit' => 'required|string',
+            'unity' => 'required|string',
             'stock' => 'nullable|integer|min:0',
-            'photo' => 'nullable|image|max:2048',
+            'image' => 'nullable|image|max:2048',
         ]);
 
         if ($validator->fails()) {
@@ -163,11 +163,11 @@ class ProductController extends Controller
             'category_id' => $request->category_id,
             'stock' => $request->stock ?? 0,
             'origin' => $request->origin,
-            'unit' => $request->unit,
+            'unity' => $request->unity,
         ]);
 
         // Handle image upload
-        if ($request->hasFile('photo')) {
+        if ($request->hasFile('image')) {
             // Delete existing main image if exists
             $mainImage = $product->images()->where('is_main', true)->first();
             if ($mainImage) {
@@ -176,7 +176,7 @@ class ProductController extends Controller
             }
             
             // Upload new image
-            $path = $request->file('photo')->store('products', 'public');
+            $path = $request->file('image')->store('products', 'public');
             
             // Create new image record
             $product->images()->create([
