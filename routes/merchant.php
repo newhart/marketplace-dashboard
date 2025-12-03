@@ -33,6 +33,7 @@ Route::middleware(['auth:sanctum', 'verified', 'role:merchant'])->prefix('mercha
 
     // Order management
     Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');
+    Route::get('/orders/{id}', [OrderController::class, 'show'])->name('orders.show');
 });
 
 // Admin routes for merchant approval - requires admin role

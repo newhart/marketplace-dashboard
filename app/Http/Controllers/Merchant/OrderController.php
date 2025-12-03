@@ -22,4 +22,22 @@ class OrderController extends Controller
             'orders' => $orders
         ]);
     }
+
+    public function show($id)
+    {
+        $order = Order::whereHas('items.product', function ($query) {
+            $query->where('user_id', auth()->id());
+        })->with([
+            'items' => function ($query) {
+                $query->whereHas('product', function ($q) {
+                    $q->where('user_id', auth()->id());
+                })->with('product');
+            },
+            'user'
+        ])->findOrFail($id);
+
+        return response()->json([
+            'order' => $order
+        ]);
+    }
 }

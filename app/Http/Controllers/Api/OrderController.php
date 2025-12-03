@@ -115,16 +115,12 @@ class OrderController extends Controller
     {
         try {
             $user = Auth::user();
-            // Get products owned by this merchant
-            $productIds = $user->products()->pluck('id');
 
             if (!$user) {
                 return response()->json(['error' => 'Utilisateur non authentifié'], 401);
             }
 
-            $order = Order::whereHas('items', function ($query) use ($productIds) {
-                $query->whereIn('product_id', $productIds);
-            })->with(['items.product', 'user'])
+            $order = Order::with(['items.product', 'user'])
                 ->findOrFail($orderId);
 
             return response()->json([
