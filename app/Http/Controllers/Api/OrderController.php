@@ -120,7 +120,7 @@ class OrderController extends Controller
                 return response()->json(['error' => 'Utilisateur non authentifié'], 401);
             }
             
-            $order = $user->orders()->with(['items.product', 'user'])->findOrFail($orderId);
+            $order = Order::with(['items.product', 'user'])->findOrFail($orderId);
             
             return response()->json([
                 'success' => true,
