@@ -36,6 +36,11 @@ class OrderController extends Controller
             'user'
         ])->findOrFail($id);
 
+        // Recalculer le total en fonction uniquement des produits du commerçant
+        $order->total_amount = $order->items->sum(function ($item) {
+            return $item->price * $item->quantity;
+        });
+
         return response()->json([
             'order' => $order
         ]);

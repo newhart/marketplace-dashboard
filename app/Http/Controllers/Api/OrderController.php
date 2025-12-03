@@ -123,6 +123,10 @@ class OrderController extends Controller
             $order = Order::with(['items.product', 'user'])
                 ->findOrFail($orderId);
 
+            $order->total_amount = $order->items->sum(function ($item) {
+                return $item->price * $item->quantity;
+            });
+
             return response()->json([
                 'success' => true,
                 'data' => $order
