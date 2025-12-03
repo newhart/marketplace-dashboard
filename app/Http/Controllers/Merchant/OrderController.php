@@ -16,7 +16,7 @@ class OrderController extends Controller
             $query->whereHas('product', function ($q) {
                 $q->where('user_id', auth()->id());
             })->with('product');
-        }])->latest()->paginate(10);
+        } , 'user'])->latest()->paginate(10);
 
         return response()->json([
             'orders' => $orders
