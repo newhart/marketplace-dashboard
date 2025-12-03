@@ -50,7 +50,7 @@ class OrderController extends Controller
         try {
             // Get the authenticated user
             $user = Auth::user();
-            
+
             if (!$user) {
                 return response()->json(['error' => 'Utilisateur non authentifié'], 401);
             }
@@ -75,7 +75,7 @@ class OrderController extends Controller
             ], 500);
         }
     }
-    
+
     /**
      * Get orders for the authenticated customer
      *
@@ -85,13 +85,13 @@ class OrderController extends Controller
     {
         try {
             $user = Auth::user();
-            
+
             if (!$user) {
                 return response()->json(['error' => 'Utilisateur non authentifié'], 401);
             }
-            
+
             $orders = $user->orders()->with('items.product')->latest()->get();
-            
+
             return response()->json([
                 'success' => true,
                 'data' => $orders
@@ -104,7 +104,7 @@ class OrderController extends Controller
             ], 500);
         }
     }
-    
+
     /**
      * Get order details for a customer
      *
@@ -115,13 +115,19 @@ class OrderController extends Controller
     {
         try {
             $user = Auth::user();
-            
+            // Get products owned by this merchant
+            $productIds = $user->products()->pluck('id');
+
             if (!$user) {
                 return response()->json(['error' => 'Utilisateur non authentifié'], 401);
             }
-            
-            $order = Order::with(['items.product', 'user'])->findOrFail($orderId);
-            
+
+            $order = Order::with(['items.product', 'user'])
+                ->whereHas('items', function ($query) use ($productIds) {
+                    $query->whereIn('product_id', $productIds);
+                })
+                ->findOrFail($orderId);
+
             return response()->json([
                 'success' => true,
                 'data' => $order
@@ -134,7 +140,7 @@ class OrderController extends Controller
             ], 500);
         }
     }
-    
+
     /**
      * Get orders for merchant products
      *
@@ -144,14 +150,14 @@ class OrderController extends Controller
     {
         try {
             $user = Auth::user();
-            
+
             if (!$user || !$user->isMerchant()) {
                 return response()->json(['error' => 'Accès non autorisé'], 403);
             }
-            
+
             // Get all orders that contain products owned by this merchant
             $orders = $this->orderService->getMerchantOrders($user);
-            
+
             return response()->json([
                 'success' => true,
                 'data' => $orders
@@ -164,7 +170,7 @@ class OrderController extends Controller
             ], 500);
         }
     }
-    
+
     /**
      * Get order details for a merchant
      *
@@ -175,18 +181,18 @@ class OrderController extends Controller
     {
         try {
             $user = Auth::user();
-            
+
             if (!$user || !$user->isMerchant()) {
                 return response()->json(['error' => 'Accès non autorisé'], 403);
             }
-            
+
             // Get order details with only the items related to this merchant's products
             $orderDetails = $this->orderService->getMerchantOrderDetail($orderId, $user);
-            
+
             if (!$orderDetails) {
                 return response()->json(['error' => 'Commande non trouvée ou ne contient pas vos produits'], 404);
             }
-            
+
             return response()->json([
                 'success' => true,
                 'data' => $orderDetails
@@ -199,7 +205,7 @@ class OrderController extends Controller
             ], 500);
         }
     }
-    
+
     /**
      * Cancel an order (merchant only)
      *
@@ -210,17 +216,17 @@ class OrderController extends Controller
     {
         try {
             $user = Auth::user();
-            
+
             if (!$user || !$user->isMerchant()) {
                 return response()->json(['error' => 'Accès non autorisé'], 403);
             }
-            
+
             $result = $this->orderService->cancelMerchantOrder($orderId, $user);
-            
+
             if (!$result) {
                 return response()->json(['error' => 'Commande non trouvée ou ne contient pas vos produits'], 404);
             }
-            
+
             return response()->json([
                 'success' => true,
                 'message' => 'Commande annulée avec succès'
@@ -233,7 +239,7 @@ class OrderController extends Controller
             ], 500);
         }
     }
-    
+
     /**
      * Generate invoice for an order
      *
@@ -244,25 +250,25 @@ class OrderController extends Controller
     {
         try {
             $user = Auth::user();
-            
+
             if (!$user) {
                 return response()->json(['error' => 'Utilisateur non authentifié'], 401);
             }
-            
+
             // Check if user is customer or merchant and has access to this order
             if ($user->isMerchant()) {
                 $orderAccess = $this->orderService->merchantHasAccessToOrder($orderId, $user);
             } else {
                 $orderAccess = $user->orders()->where('id', $orderId)->exists();
             }
-            
+
             if (!$orderAccess) {
                 return response()->json(['error' => 'Accès non autorisé à cette commande'], 403);
             }
-            
+
             // Generate invoice
             $invoiceUrl = $this->invoiceService->generateInvoice($orderId, $user->isMerchant());
-            
+
             return response()->json([
                 'success' => true,
                 'message' => 'Facture générée avec succès',
