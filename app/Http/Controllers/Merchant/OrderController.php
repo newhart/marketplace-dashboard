@@ -16,7 +16,7 @@ class OrderController extends Controller
             $query->whereHas('product', function ($q) {
                 $q->where('user_id', auth()->id());
             })->with('product');
-        } , 'user'])->latest()->paginate(10);
+        }, 'user'])->latest()->paginate(10);
 
         return response()->json([
             'orders' => $orders
@@ -36,13 +36,14 @@ class OrderController extends Controller
             'user'
         ])->findOrFail($id);
 
-        // Recalculer le total en fonction uniquement des produits du commerçant
-        $order->total_amount = $order->items->sum(function ($item) {
+        // Recalculer le montant total basé sur les items filtrés
+        $calculatedTotal = $order->items->sum(function ($item) {
             return $item->price * $item->quantity;
         });
 
         return response()->json([
-            'order' => $order
+            'order' => $order,
+            'total_amount' => $calculatedTotal
         ]);
     }
 }
