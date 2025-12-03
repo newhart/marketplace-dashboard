@@ -47,7 +47,7 @@ class ProductService
 
     public function index(Request $request) : ProductCollection
     {
-        $products =  Product::with(['category'])
+        $products =  Product::with(['category' , 'images'])
         ->latest()
         ->paginate(10); 
 
@@ -63,10 +63,13 @@ class ProductService
 
         return new ProductCollection($products); 
     }
-    public function searchProduct(Request $request) : ProductCollection{
-        $products = Product::where('name', 'like', '%' . $request->keyWord . '%')
-        ->orWhere('description', 'like', '%' . $request->keyWord . '%')
-        ->with(['category'])
+    public function searchProduct(Request $request) : ProductCollection
+    {
+        $products =  $products = Product::where('name', 'like', '%' . $request->keyWord . '%')
+        ->orWhereHas('category', function($query) use ($request) {
+            $query->where('name', 'like', '%' . $request->keyWord . '%');
+        })
+        ->with(['category', 'images'])
         ->latest()
         ->paginate(10); 
 
