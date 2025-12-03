@@ -122,10 +122,9 @@ class OrderController extends Controller
                 return response()->json(['error' => 'Utilisateur non authentifié'], 401);
             }
 
-            $order = Order::with(['items.product', 'user'])
-                ->whereHas('items', function ($query) use ($productIds) {
-                    $query->whereIn('product_id', $productIds);
-                })
+            $order = Order::whereHas('items', function ($query) use ($productIds) {
+                $query->whereIn('product_id', $productIds);
+            })->with(['items.product', 'user'])
                 ->findOrFail($orderId);
 
             return response()->json([
