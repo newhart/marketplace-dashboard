@@ -3,6 +3,7 @@
 use App\Http\Controllers\Auth\CustomerRegistrationController;
 use App\Http\Controllers\Auth\CustomerSocialAuthController;
 use App\Http\Controllers\Api\CustomerProfileController;
+use App\Http\Controllers\Api\ProductReviewController;
 use Illuminate\Support\Facades\Route;
 
 // Customer registration routes
@@ -20,7 +21,7 @@ Route::post('/customer/social-register', [CustomerRegistrationController::class,
     ->middleware('guest')
     ->name('customer.social.register');
 
-// Customer profile management routes (authenticated)
+// Customer profile & reviews management routes (authenticated)
 Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('customer')->group(function () {
         // Profile management
@@ -32,5 +33,9 @@ Route::middleware('auth:sanctum')->group(function () {
         // Social account management
         Route::post('/link-social-account', [CustomerSocialAuthController::class, 'linkSocialAccount']);
         Route::delete('/unlink-social-account', [CustomerSocialAuthController::class, 'unlinkSocialAccount']);
+
+        // Product reviews (avis clients par produit)
+        Route::get('/products/{product}/reviews', [ProductReviewController::class, 'index']);
+        Route::post('/products/{product}/reviews', [ProductReviewController::class, 'store']);
     });
 });
