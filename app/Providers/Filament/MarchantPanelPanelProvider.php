@@ -26,9 +26,13 @@ class MarchantPanelPanelProvider extends PanelProvider
             ->id('marchantPanel')
             ->path('marchantPanel')
             ->login()
+            ->brandName('OnaMarketplace')
+            ->brandLogo(asset('images/logo.png'))
+            ->brandLogoHeight('3rem')
             ->colors([
                 'primary' => Color::Amber,
             ])
+            ->viteTheme('resources/css/filament/app/theme.css')
             ->discoverResources(in: app_path('Filament/MarchantPanel/Resources'), for: 'App\\Filament\\MarchantPanel\\Resources')
             ->discoverPages(in: app_path('Filament/MarchantPanel/Pages'), for: 'App\\Filament\\MarchantPanel\\Pages')
             ->pages([

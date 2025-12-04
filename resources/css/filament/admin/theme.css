@@ -1,0 +1,48 @@
+@import "tailwindcss";
+
+/* =====================================
+   CUSTOMISATION LÉGÈRE DE LA SIDEBAR
+   (on laisse le reste au thème par défaut)
+   ===================================== */
+
+/* Fond clair avec une légère teinte primaire */
+.fi-sidebar {
+    @apply bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800;
+    box-shadow: 4px 0 18px rgba(15, 23, 42, 0.18);
+}
+
+/* Titre / groupe plus lisibles */
+.fi-sidebar-group-label {
+    @apply text-xs font-semibold uppercase tracking-wide text-gray-400 px-4 mt-4 mb-2;
+}
+
+/* Items : puce discrète + survol doux */
+.fi-sidebar-item {
+    @apply mx-2 my-0.5;
+}
+
+.fi-sidebar-item-button {
+    @apply rounded-xl px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800;
+}
+
+.fi-sidebar-item-icon {
+    @apply w-5 h-5 text-gray-400;
+}
+
+.fi-sidebar-item-label {
+    @apply font-medium;
+}
+
+/* État actif : pill clair avec bord gauche en primaire */
+.fi-sidebar-item.fi-active .fi-sidebar-item-button {
+    @apply bg-teal-50 dark:bg-teal-900/40 text-teal-800 dark:text-teal-200;
+    box-shadow: inset 3px 0 0 #02c6b0;
+}
+
+.fi-sidebar-item.fi-active .fi-sidebar-item-icon {
+    color: #02c6b0;
+}
+
+.fi-sidebar-item.fi-active .fi-sidebar-item-label {
+    @apply font-semibold;
+}
