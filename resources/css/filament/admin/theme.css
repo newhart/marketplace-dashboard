@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+@source '../../../../app/Filament/**/*.php';
+@source '../../../../resources/views/**/*.blade.php';
+@source '../../../../vendor/**/*.blade.php';
+
 /* =====================================
    CUSTOMISATION LÉGÈRE DE LA SIDEBAR
    (on laisse le reste au thème par défaut)
