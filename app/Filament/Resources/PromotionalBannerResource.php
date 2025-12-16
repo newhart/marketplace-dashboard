@@ -39,57 +39,62 @@ class PromotionalBannerResource extends Resource
     {
         return $form
             ->schema([
-                TextInput::make('title')
-                    ->label('Titre')
-                    ->required()
-                    ->maxLength(255)
-                    ->placeholder('Ex: Du 10 au 20 mars')
-                    ->columnSpanFull(),
+                Forms\Components\Section::make()
+                    ->extraAttributes(['class' => 'max-w-6xl mx-auto'])
+                    ->schema([
+                        TextInput::make('title')
+                            ->label('Titre')
+                            ->required()
+                            ->maxLength(255)
+                            ->placeholder('Ex: Du 10 au 20 mars')
+                            ->columnSpanFull(),
 
-                TextInput::make('subtitle')
-                    ->label('Sous-titre')
-                    ->maxLength(255)
-                    ->placeholder('Ex: Promotion sur les fruits de saison')
-                    ->columnSpanFull(),
+                        TextInput::make('subtitle')
+                            ->label('Sous-titre')
+                            ->maxLength(255)
+                            ->placeholder('Ex: Promotion sur les fruits de saison')
+                            ->columnSpanFull(),
 
-                FileUpload::make('image')
-                    ->label('Image de la bannière')
-                    ->image()
-                    ->directory('promotional-banners')
-                    ->required()
-                    ->maxSize(5120) // 5MB
-                    ->helperText('Format: JPG, PNG, GIF. Taille max: 5MB. Dimensions recommandées: 1200x400px')
-                    ->columnSpanFull(),
+                        FileUpload::make('image')
+                            ->label('Image de la bannière')
+                            ->image()
+                            ->directory('promotional-banners')
+                            ->required()
+                            ->maxSize(5120) // 5MB
+                            ->helperText('Format: JPG, PNG, GIF. Taille max: 5MB. Dimensions recommandées: 1200x400px')
+                            ->columnSpanFull(),
 
-                Forms\Components\Select::make('product_id')
-                    ->label('Produit lié')
-                    ->relationship('product', 'name')
-                    ->searchable()
-                    ->preload()
-                    ->helperText('Rediriger vers ce produit lors du clic sur la bannière')
-                    ->columnSpanFull(),
+                        Forms\Components\Select::make('product_id')
+                            ->label('Produit lié')
+                            ->relationship('product', 'name')
+                            ->searchable()
+                            ->preload()
+                            ->helperText('Rediriger vers ce produit lors du clic sur la bannière')
+                            ->columnSpanFull(),
 
-                DatePicker::make('start_date')
-                    ->label('Date de début')
-                    ->nullable()
-                    ->helperText('Laisser vide pour une promotion sans date de début'),
+                        DatePicker::make('start_date')
+                            ->label('Date de début')
+                            ->nullable()
+                            ->helperText('Laisser vide pour une promotion sans date de début'),
 
-                DatePicker::make('end_date')
-                    ->label('Date de fin')
-                    ->nullable()
-                    ->helperText('Laisser vide pour une promotion sans date de fin'),
+                        DatePicker::make('end_date')
+                            ->label('Date de fin')
+                            ->nullable()
+                            ->helperText('Laisser vide pour une promotion sans date de fin'),
 
-                TextInput::make('display_order')
-                    ->label('Ordre d\'affichage')
-                    ->numeric()
-                    ->default(0)
-                    ->required()
-                    ->helperText('Les bannières avec un ordre inférieur s\'affichent en premier'),
+                        TextInput::make('display_order')
+                            ->label('Ordre d\'affichage')
+                            ->numeric()
+                            ->default(0)
+                            ->required()
+                            ->helperText('Les bannières avec un ordre inférieur s\'affichent en premier'),
 
-                Toggle::make('is_active')
-                    ->label('Actif')
-                    ->default(true)
-                    ->helperText('Désactiver pour masquer temporairement la bannière'),
+                        Toggle::make('is_active')
+                            ->label('Actif')
+                            ->default(true)
+                            ->helperText('Désactiver pour masquer temporairement la bannière'),
+                    ])
+                    ->columns(2),
             ]);
     }
 

@@ -23,6 +23,7 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 
 class UserFilamentResource extends Resource
 {
@@ -34,19 +35,30 @@ class UserFilamentResource extends Resource
     {
         return $form
             ->schema([
-                TextInput::make('name')
-                    ->required(),
-                TextInput::make('email')
-                    ->email()
-                    ->required(),
-                Select::make('type')
-                    ->options([
-                        'customer' => 'Client',
-                        'merchant' => 'Marchand',
-                        'seller' => 'Vendeur',
-                        'transporter' => 'Transporteur',
+                Forms\Components\Section::make()
+                    ->extraAttributes(['class' => 'max-w-6xl mx-auto'])
+                    ->schema([
+                        TextInput::make('name')
+                            ->required(),
+                        TextInput::make('email')
+                            ->email()
+                            ->required(),
+                        TextInput::make('password')
+                            ->password()
+                            ->dehydrateStateUsing(fn($state) => Hash::make($state))
+                            ->dehydrated(fn($state) => filled($state))
+                            ->required(fn(string $context): bool => $context === 'create'),
+                        Select::make('type')
+                            ->options([
+                                'customer' => 'Client',
+                                'merchant' => 'Marchand',
+                                'seller' => 'Vendeur',
+                                'transporter' => 'Transporteur',
+                            ])
+                            ->required()
+                            ->columnSpanFull(),
                     ])
-                    ->required(),
+                    ->columns(2),
             ]);
     }
 
@@ -60,7 +72,7 @@ class UserFilamentResource extends Resource
                     ->searchable(),
                 TextColumn::make('type')
                     ->badge()
-                    ->color(fn (string $state): string => match ($state) {
+                    ->color(fn(string $state): string => match ($state) {
                         'merchant' => 'warning',
                         'admin' => 'danger',
                         default => 'success',
@@ -72,7 +84,7 @@ class UserFilamentResource extends Resource
                         if (!$record->isMerchant()) {
                             return true; // Non-marchands sont toujours considérés comme approuvés
                         }
-                        
+
                         $merchant = $record->merchant;
                         return $merchant && $merchant->approval_status === 'approved';
                     }),
@@ -97,9 +109,9 @@ class UserFilamentResource extends Resource
                         return $query
                             ->when(
                                 $data['value'],
-                                fn (Builder $query, $value): Builder => $query->whereHas(
+                                fn(Builder $query, $value): Builder => $query->whereHas(
                                     'merchant',
-                                    fn (Builder $query): Builder => $query->where('approval_status', $value)
+                                    fn(Builder $query): Builder => $query->where('approval_status', $value)
                                 )
                             );
                     }),
@@ -111,24 +123,25 @@ class UserFilamentResource extends Resource
                     ->label('Approuver')
                     ->icon('heroicon-o-check-circle')
                     ->color('success')
-                    ->visible(fn (User $record): bool => 
-                        $record->isMerchant() && 
-                        $record->merchant && 
-                        $record->merchant->approval_status === 'pending'
+                    ->visible(
+                        fn(User $record): bool =>
+                        $record->isMerchant() &&
+                            $record->merchant &&
+                            $record->merchant->approval_status === 'pending'
                     )
                     ->action(function (User $record): void {
                         DB::transaction(function () use ($record) {
                             $merchant = $record->merchant;
                             $merchant->approval_status = 'approved';
                             $merchant->save();
-                            
+
                             // Mettre à jour le statut d'approbation de l'utilisateur
                             $record->is_approved = true;
                             $record->save();
-                            
+
                             // Envoyer une notification par email
                             $record->notify(new MerchantApprovedNotification($merchant));
-                            
+
                             Notification::make()
                                 ->title('Marchand approuvé')
                                 ->success()

@@ -36,45 +36,51 @@ class CategoryResource extends Resource
     {
         return $form
             ->schema([
-                TextInput::make('name')
-                    ->label('Nom de la catégorie')
-                    ->required()
-                    ->maxLength(255)
-                    ->placeholder('Ex: Électronique, Vêtements...'),
+                Forms\Components\Section::make()
+                    ->extraAttributes(['class' => 'max-w-6xl mx-auto'])
+                    ->schema([
+                        TextInput::make('name')
+                            ->label('Nom de la catégorie')
+                            ->required()
+                            ->maxLength(255)
+                            ->placeholder('Ex: Électronique, Vêtements...'),
 
-                FileUpload::make('image')
-                    ->label('Image de la catégorie')
-                    ->image()
-                    ->directory('categories')
-                    ->maxSize(5120) // 5MB
-                    ->helperText('Format: JPG, PNG, GIF. Taille max: 5MB')
-                    ->columnSpanFull(),
+                        FileUpload::make('image')
+                            ->label('Image de la catégorie')
+                            ->image()
+                            ->directory('categories')
+                            ->maxSize(5120) // 5MB
+                            ->helperText('Format: JPG, PNG, GIF. Taille max: 5MB')
+                            ->columnSpanFull(),
 
-                Select::make('parent_id')
-                    ->label('Catégorie parent')
-                    ->options(function () {
-                        return Category::whereNull('parent_id')
-                            ->pluck('name', 'id');
-                    })
-                    ->searchable()
-                    ->preload()
-                    ->nullable()
-                    ->helperText('Laisser vide pour une catégorie principale'),
+                        Select::make('parent_id')
+                            ->label('Catégorie parent')
+                            ->options(function () {
+                                return Category::whereNull('parent_id')
+                                    ->pluck('name', 'id');
+                            })
+                            ->searchable()
+                            ->preload()
+                            ->nullable()
+                            ->helperText('Laisser vide pour une catégorie principale'),
 
-                Select::make('user_id')
-                    ->label('Créateur')
-                    ->relationship('user', 'name')
-                    ->searchable()
-                    ->preload()
-                    ->required()
-                    ->helperText('L\'utilisateur qui crée cette catégorie'),
+                        Select::make('user_id')
+                            ->label('Créateur')
+                            ->relationship('user', 'name')
+                            ->searchable()
+                            ->preload()
+                            ->required()
+                            ->helperText('L\'utilisateur qui crée cette catégorie'),
+                    ])
+                    ->columns(2),
             ]);
     }
 
     public static function table(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(fn (Builder $query) => $query->whereHas('products'))
+            ->recordUrl(null)
+            ->modifyQueryUsing(fn(Builder $query) => $query->whereNull('parent_id'))
             ->columns([
                 ImageColumn::make('image')
                     ->label('Image')
@@ -85,7 +91,7 @@ class CategoryResource extends Resource
                     ->label('Nom')
                     ->searchable()
                     ->sortable()
-                    ->weight('bold'),
+                    ->view('filament.resources.category.name-column'),
 
                 TextColumn::make('user.name')
                     ->label('Créateur')
@@ -116,23 +122,7 @@ class CategoryResource extends Resource
                     ->query(function (Builder $query, array $data): Builder {
                         return $query->when(
                             $data['value'],
-                            fn (Builder $query, $value): Builder => $query->where('parent_id', $value)
-                        );
-                    }),
-
-                SelectFilter::make('type')
-                    ->label('Type')
-                    ->options([
-                        'parent' => 'Catégories principales',
-                        'child' => 'Sous-catégories',
-                    ])
-                    ->query(function (Builder $query, array $data): Builder {
-                        return $query->when(
-                            $data['value'] === 'parent',
-                            fn (Builder $query): Builder => $query->whereNull('parent_id')
-                        )->when(
-                            $data['value'] === 'child',
-                            fn (Builder $query): Builder => $query->whereNotNull('parent_id')
+                            fn(Builder $query, $value): Builder => $query->where('parent_id', $value)
                         );
                     }),
             ])

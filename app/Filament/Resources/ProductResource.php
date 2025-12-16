@@ -26,6 +26,7 @@ class ProductResource extends Resource
         return $form
             ->schema([
                 Forms\Components\Section::make('Informations du produit')
+                    ->extraAttributes(['class' => 'max-w-6xl mx-auto'])
                     ->schema([
                         Forms\Components\TextInput::make('name')
                             ->label('Nom')
@@ -53,13 +54,6 @@ class ProductResource extends Resource
                     ])
                     ->columns(2),
 
-                Forms\Components\Section::make('Statut & options')
-                    ->schema([
-                        Forms\Components\Toggle::make('is_active')
-                            ->label('Actif')
-                            ->default(true),
-                    ])
-                    ->columns(1),
             ]);
     }
 
@@ -69,7 +63,7 @@ class ProductResource extends Resource
             ->columns([
                 Tables\Columns\ImageColumn::make('image')
                     ->label('Image')
-                    ->getStateUsing(fn ($record) => $record->image ?: optional($record->firstImage)->path)
+                    ->getStateUsing(fn($record) => $record->image ?: optional($record->firstImage)->path)
                     ->square(),
                 Tables\Columns\TextColumn::make('name')
                     ->label('Nom')
@@ -82,9 +76,6 @@ class ProductResource extends Resource
                     ->label('Prix')
                     ->money('XPF')
                     ->sortable(),
-                Tables\Columns\IconColumn::make('is_active')
-                    ->label('Actif')
-                    ->boolean(),
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Créé le')
                     ->dateTime('d/m/Y H:i')
@@ -94,10 +85,6 @@ class ProductResource extends Resource
                 Tables\Filters\SelectFilter::make('category')
                     ->label('Catégorie')
                     ->relationship('category', 'name'),
-
-                Tables\Filters\Filter::make('active')
-                    ->label('Actifs uniquement')
-                    ->query(fn (Builder $query): Builder => $query->where('is_active', true)),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
@@ -109,7 +96,8 @@ class ProductResource extends Resource
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
             ])
-            ->defaultSort('created_at', 'desc');
+            ->defaultSort('created_at', 'desc')
+            ->paginated([10, 25, 50, 100]);
     }
 
     public static function infolist(Infolist $infolist): Infolist
@@ -120,7 +108,7 @@ class ProductResource extends Resource
                     ->schema([
                         InfolistComponents\ImageEntry::make('image')
                             ->label('Image')
-                            ->getStateUsing(fn ($record) => $record->image ?: optional($record->firstImage)->path)
+                            ->getStateUsing(fn($record) => $record->image ?: optional($record->firstImage)->path)
                             ->height(160)
                             ->columnSpanFull(),
                         InfolistComponents\Grid::make(3)

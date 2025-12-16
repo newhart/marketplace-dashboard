@@ -27,7 +27,7 @@ class AdminPanelProvider extends PanelProvider
             ->brandName('OnaMarketplace')
             ->id('admin')
             ->path('admin')
-            ->login()
+            ->login(\App\Filament\Pages\CustomLogin::class)
             ->brandLogo(asset('images/logo.png'))
             ->brandLogoHeight('3rem')
             ->colors([
@@ -36,6 +36,7 @@ class AdminPanelProvider extends PanelProvider
                 'tertiary' => Color::hex('#FFE6C7'),
                 'gray' => Color::Gray,
             ])
+            ->darkMode(false)
             ->sidebarCollapsibleOnDesktop()
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')

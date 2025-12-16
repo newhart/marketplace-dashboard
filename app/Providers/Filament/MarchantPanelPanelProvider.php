@@ -25,13 +25,14 @@ class MarchantPanelPanelProvider extends PanelProvider
         return $panel
             ->id('marchantPanel')
             ->path('marchantPanel')
-            ->login()
+            ->login(\App\Filament\Pages\CustomLogin::class)
             ->brandName('OnaMarketplace')
             ->brandLogo(asset('images/logo.png'))
             ->brandLogoHeight('3rem')
             ->colors([
                 'primary' => Color::Amber,
             ])
+            ->darkMode(false)
             ->viteTheme('resources/css/filament/app/theme.css')
             ->discoverResources(in: app_path('Filament/MarchantPanel/Resources'), for: 'App\\Filament\\MarchantPanel\\Resources')
             ->discoverPages(in: app_path('Filament/MarchantPanel/Pages'), for: 'App\\Filament\\MarchantPanel\\Pages')
