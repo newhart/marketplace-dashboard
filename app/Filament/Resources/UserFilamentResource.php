@@ -43,6 +43,9 @@ class UserFilamentResource extends Resource
                         TextInput::make('email')
                             ->email()
                             ->required(),
+                        TextInput::make('phone')
+                            ->tel()
+                            ->maxLength(20),
                         TextInput::make('password')
                             ->password()
                             ->dehydrateStateUsing(fn($state) => Hash::make($state))
@@ -70,6 +73,12 @@ class UserFilamentResource extends Resource
                     ->searchable(),
                 TextColumn::make('email')
                     ->searchable(),
+                TextColumn::make('phone')
+                    ->searchable()
+                    ->label('Téléphone'),
+                TextColumn::make('role')
+                    ->searchable()
+                    ->sortable(),
                 TextColumn::make('type')
                     ->badge()
                     ->color(fn(string $state): string => match ($state) {
@@ -88,6 +97,10 @@ class UserFilamentResource extends Resource
                         $merchant = $record->merchant;
                         return $merchant && $merchant->approval_status === 'approved';
                     }),
+                TextColumn::make('created_at')
+                    ->dateTime()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->defaultSort('created_at', 'desc')
             ->filters([
