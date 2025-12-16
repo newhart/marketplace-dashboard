@@ -91,7 +91,7 @@ class UserFilamentResource extends Resource
                     ->label('Approuvé')
                     ->getStateUsing(function (User $record): bool {
                         if (!$record->isMerchant()) {
-                            return true; // Non-marchands sont toujours considérés comme approuvés
+                            return true;
                         }
 
                         $merchant = $record->merchant;
