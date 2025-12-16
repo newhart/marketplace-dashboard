@@ -130,12 +130,18 @@ class UserFilamentResource extends Resource
                     }),
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+                Tables\Actions\EditAction::make()
+                    ->iconButton()
+                    ->tooltip('Modifier'),
+                Tables\Actions\DeleteAction::make()
+                    ->iconButton()
+                    ->tooltip('Supprimer'),
                 Action::make('approuveMarchand')
-                    ->label('Approuver')
+                    ->label('')
+                    ->tooltip('Approuver')
                     ->icon('heroicon-o-check-circle')
                     ->color('success')
+                    ->iconButton()
                     ->visible(
                         fn(User $record): bool =>
                         $record->isMerchant() &&

@@ -169,15 +169,21 @@ class PromotionalBannerResource extends Resource
             ])
             ->actions([
                 Action::make('toggle_active')
-                    ->label('Activer/Désactiver')
+                    ->label('')
+                    ->tooltip('Activer/Désactiver')
                     ->icon('heroicon-o-arrow-path')
+                    ->iconButton()
                     ->color(fn(PromotionalBanner $record): string => $record->is_active ? 'danger' : 'success')
                     ->action(function (PromotionalBanner $record): void {
                         $record->is_active = !$record->is_active;
                         $record->save();
                     }),
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+                Tables\Actions\EditAction::make()
+                    ->iconButton()
+                    ->tooltip('Modifier'),
+                Tables\Actions\DeleteAction::make()
+                    ->iconButton()
+                    ->tooltip('Supprimer'),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
