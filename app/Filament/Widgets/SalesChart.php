@@ -3,20 +3,39 @@
 namespace App\Filament\Widgets;
 
 use Filament\Widgets\ChartWidget;
+use Filament\Widgets\Concerns\InteractsWithPageFilters;
+use Illuminate\Support\Facades\DB;
 
 class SalesChart extends ChartWidget
 {
+    use InteractsWithPageFilters;
+
     protected static ?string $heading = 'Évolution du C.A. (HT)';
 
     protected function getData(): array
     {
-        $data = \Flowframe\Trend\Trend::model(\App\Models\Order::class)
-            ->between(
-                start: now()->startOfYear(),
-                end: now()->endOfYear(),
+        $merchantId = $this->filters['merchant_id'] ?? null;
+
+        if ($merchantId) {
+            $data = \Flowframe\Trend\Trend::query(
+                \App\Models\OrderItem::query()->whereHas('product', fn($q) => $q->where('user_id', $merchantId))
             )
-            ->perMonth()
-            ->sum('total_amount');
+                ->dateColumn('created_at')
+                ->between(
+                    start: now()->startOfYear(),
+                    end: now()->endOfYear(),
+                )
+                ->perMonth()
+                ->sum('price * quantity');
+        } else {
+            $data = \Flowframe\Trend\Trend::model(\App\Models\Order::class)
+                ->between(
+                    start: now()->startOfYear(),
+                    end: now()->endOfYear(),
+                )
+                ->perMonth()
+                ->sum('total_amount');
+        }
 
         return [
             'datasets' => [

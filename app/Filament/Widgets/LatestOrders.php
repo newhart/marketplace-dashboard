@@ -6,8 +6,12 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Widgets\TableWidget as BaseWidget;
 
+use Filament\Widgets\Concerns\InteractsWithPageFilters;
+
 class LatestOrders extends BaseWidget
 {
+    use InteractsWithPageFilters;
+
     protected int | string | array $columnSpan = 'full';
 
     protected static ?string $heading = 'Dernières Commandes';
@@ -16,7 +20,14 @@ class LatestOrders extends BaseWidget
     {
         return $table
             ->query(
-                \App\Models\Order::query()->latest()->limit(5)
+                \App\Models\Order::query()
+                    ->when($this->filters['merchant_id'] ?? null, function ($query, $merchantId) {
+                        return $query->whereHas('items.product', function ($query) use ($merchantId) {
+                            $query->where('user_id', $merchantId);
+                        });
+                    })
+                    ->latest()
+                    ->limit(5)
             )
             ->columns([
                 Tables\Columns\TextColumn::make('id')
