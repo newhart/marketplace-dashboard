@@ -41,6 +41,7 @@ class User extends Authenticatable implements MustVerifyEmail
     protected $casts = [
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
+        'is_active' => 'boolean',
     ];
 
     /**
@@ -113,14 +114,14 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(Category::class);
     }
 
-    public function products(): HasMany 
+    public function products(): HasMany
     {
-        return $this->hasMany(Product::class); 
+        return $this->hasMany(Product::class);
     }
 
     public function reviews(): HasMany
     {
-        return $this->hasMany(Review::class); 
+        return $this->hasMany(Review::class);
     }
 
     public function favorites(): BelongsToMany
