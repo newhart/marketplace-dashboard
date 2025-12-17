@@ -17,8 +17,12 @@ class SalesChart extends ChartWidget
         $merchantId = $this->filters['merchant_id'] ?? null;
 
         if ($merchantId) {
+            $subQuery = \App\Models\OrderItem::query()
+                ->select(DB::raw('price * quantity as revenue, created_at'))
+                ->whereHas('product', fn($q) => $q->where('user_id', $merchantId));
+
             $data = \Flowframe\Trend\Trend::query(
-                \App\Models\OrderItem::query()->whereHas('product', fn($q) => $q->where('user_id', $merchantId))
+                \App\Models\OrderItem::query()->fromSub($subQuery, 'sub')
             )
                 ->dateColumn('created_at')
                 ->between(
@@ -26,7 +30,7 @@ class SalesChart extends ChartWidget
                     end: now()->endOfYear(),
                 )
                 ->perMonth()
-                ->sum('price * quantity');
+                ->sum('revenue');
         } else {
             $data = \Flowframe\Trend\Trend::model(\App\Models\Order::class)
                 ->between(
