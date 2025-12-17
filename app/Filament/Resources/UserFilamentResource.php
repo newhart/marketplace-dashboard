@@ -97,6 +97,10 @@ class UserFilamentResource extends Resource
                         $merchant = $record->merchant;
                         return $merchant && $merchant->approval_status === 'approved';
                     }),
+                IconColumn::make('is_active')
+                    ->boolean()
+                    ->label('Actif')
+                    ->sortable(),
                 TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
@@ -136,6 +140,40 @@ class UserFilamentResource extends Resource
                 Tables\Actions\DeleteAction::make()
                     ->iconButton()
                     ->tooltip('Supprimer'),
+                Tables\Actions\Action::make('bloquer')
+                    ->label('Bloquer')
+                    ->icon('heroicon-o-lock-closed')
+                    ->color('danger')
+                    ->iconButton()
+                    ->tooltip('Bloquer le compte')
+                    ->requiresConfirmation()
+                    ->modalHeading('Bloquer l\'utilisateur')
+                    ->modalDescription('Êtes-vous sûr de vouloir bloquer cet utilisateur ? Il ne pourra plus se connecter.')
+                    ->action(function (User $record) {
+                        $record->update(['is_active' => false]);
+                        Notification::make()
+                            ->title('Utilisateur bloqué')
+                            ->success()
+                            ->send();
+                    })
+                    ->visible(fn(User $record): bool => $record->is_active),
+                Tables\Actions\Action::make('debloquer')
+                    ->label('Débloquer')
+                    ->icon('heroicon-o-lock-open')
+                    ->color('success')
+                    ->iconButton()
+                    ->tooltip('Débloquer le compte')
+                    ->requiresConfirmation()
+                    ->modalHeading('Débloquer l\'utilisateur')
+                    ->modalDescription('Êtes-vous sûr de vouloir débloquer cet utilisateur ?')
+                    ->action(function (User $record) {
+                        $record->update(['is_active' => true]);
+                        Notification::make()
+                            ->title('Utilisateur débloqué')
+                            ->success()
+                            ->send();
+                    })
+                    ->visible(fn(User $record): bool => !$record->is_active),
                 Action::make('approuveMarchand')
                     ->label('')
                     ->tooltip('Approuver')

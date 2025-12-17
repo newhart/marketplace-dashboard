@@ -16,23 +16,31 @@ class AuthenticatedSessionController extends Controller
     public function store(Request $request): JsonResponse
     {
         $loginUserData = $request->validate([
-            'email'=>'required|string|email',
-            'password'=>'required|min:8'
+            'email' => 'required|string|email',
+            'password' => 'required|min:8'
         ]);
-        
+
         $user = User::where('email', $loginUserData['email'])->first();
-        
+
         // Vérifier si les identifiants sont valides
         if (!$user || !Hash::check($loginUserData['password'], $user->password)) {
             return response()->json([
                 'message' => 'Identifiants invalides'
             ], 401);
         }
-        
+
+        // Vérifier si le compte est actif
+        if (!$user->is_active) {
+            return response()->json([
+                'message' => 'Votre compte a été désactivé. Veuillez contacter l\'administrateur.',
+                'status' => 'error'
+            ], 403);
+        }
+
         // Vérifier si l'utilisateur est un marchand et s'il est approuvé
         if ($user->type === 'merchant') {
             $merchant = $user->merchant;
-            
+
             // Vérifier si le profil marchand existe
             if (!$merchant) {
                 return response()->json([
@@ -40,7 +48,7 @@ class AuthenticatedSessionController extends Controller
                     'status' => 'error'
                 ], 403);
             }
-            
+
             // Vérifier le statut d'approbation
             if ($merchant->approval_status !== 'approved') {
                 return response()->json([
@@ -50,10 +58,10 @@ class AuthenticatedSessionController extends Controller
                 ], 403);
             }
         }
-        
+
         // Si tout est en ordre, créer le token et retourner la réponse
-        $token = $user->createToken($user->name.'-AuthToken')->plainTextToken;
-        
+        $token = $user->createToken($user->name . '-AuthToken')->plainTextToken;
+
         return response()->json([
             'token' => $token,
             'user' => $user,

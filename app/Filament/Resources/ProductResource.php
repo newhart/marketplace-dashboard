@@ -51,6 +51,12 @@ class ProductResource extends Resource
                             ->relationship('user', 'name')
                             ->searchable()
                             ->preload(),
+                        Forms\Components\Toggle::make('is_active')
+                            ->label('Actif')
+                            ->default(true)
+                            ->onIcon('heroicon-s-check')
+                            ->offIcon('heroicon-s-x-mark')
+                            ->columnSpanFull(),
                     ])
                     ->columns(2),
 
@@ -79,6 +85,10 @@ class ProductResource extends Resource
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Créé le')
                     ->dateTime('d/m/Y H:i')
+                    ->sortable(),
+                Tables\Columns\IconColumn::make('is_active')
+                    ->label('Actif')
+                    ->boolean()
                     ->sortable(),
             ])
             ->filters([

@@ -16,4 +16,13 @@ class EditCategory extends EditRecord
             Actions\DeleteAction::make(),
         ];
     }
+
+    protected function getSaveFormAction(): Actions\Action
+    {
+        return parent::getSaveFormAction()
+            ->requiresConfirmation()
+            ->modalHeading('Sauvegarder les modifications')
+            ->modalDescription('Êtes-vous sûr de vouloir sauvegarder ces modifications ?')
+            ->modalSubmitActionLabel('Oui, sauvegarder');
+    }
 }

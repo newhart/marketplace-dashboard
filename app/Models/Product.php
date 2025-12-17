@@ -10,9 +10,13 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Product extends Model
 {
-    use HasFactory ; 
-    
+    use HasFactory;
+
     protected $guarded = [];
+
+    protected $casts = [
+        'is_active' => 'boolean',
+    ];
 
     public function category(): BelongsTo
     {
@@ -24,29 +28,29 @@ class Product extends Model
         return $this->belongsTo(User::class);
     }
 
-    public function reviews() : HasMany
+    public function reviews(): HasMany
     {
         return $this->hasMany(Review::class);
     }
 
-    public function favoritedBy() : BelongsToMany
+    public function favoritedBy(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'favorites')->withTimestamps();
     }
 
-    public function orderItems() : HasMany 
+    public function orderItems(): HasMany
     {
         return $this->hasMany(OrderItem::class);
     }
 
-    public function promotions () : BelongsToMany
+    public function promotions(): BelongsToMany
     {
         return $this->belongsToMany(Promotion::class);
     }
 
     public function getDiscountedPriceAttribute()
     {
-        $discount = $this->promotions->max('discount'); 
+        $discount = $this->promotions->max('discount');
         return $this->price * (1 - $discount / 100);
     }
 
@@ -92,7 +96,7 @@ class Product extends Model
 
         // Si pas assez de produits dans la même catégorie, inclure d'autres catégories
         $sameCategoryCount = $sameCategory->count();
-        
+
         if ($sameCategoryCount < $limit) {
             $remaining = $limit - $sameCategoryCount;
             $otherProducts = self::where('category_id', '!=', $this->category_id)
@@ -100,7 +104,7 @@ class Product extends Model
                 ->inRandomOrder()
                 ->limit($remaining)
                 ->get();
-                
+
             return $sameCategory->get()->merge($otherProducts);
         }
 
@@ -123,5 +127,4 @@ class Product extends Model
             ->limit($limit)
             ->get();
     }
-    
 }
