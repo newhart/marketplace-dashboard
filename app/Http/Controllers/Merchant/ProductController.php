@@ -21,10 +21,22 @@ class ProductController extends Controller
         $perPage = (int) $request->get('per_page', 15);
         $perPage = max(1, min($perPage, 50));
 
-        $products = Product::where('user_id', Auth::id())
+        $query = Product::where('user_id', Auth::id())
             ->with(['category', 'images'])
-            ->latest()
-            ->paginate($perPage);
+            ->latest();
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%");
+            });
+        }
+
+        if ($request->filled('category_id')) {
+            $query->where('category_id', $request->category_id);
+        }
+
+        $products = $query->paginate($perPage);
 
         return new ProductCollection($products);
     }
@@ -35,7 +47,7 @@ class ProductController extends Controller
     public function create()
     {
         $categories = Category::all();
-        
+
         return response()->json([
             'categories' => $categories
         ]);
@@ -103,7 +115,7 @@ class ProductController extends Controller
             ->where('id', $id)
             ->with(['category', 'images'])
             ->firstOrFail();
-            
+
         return response()->json($product);
     }
 
@@ -116,9 +128,9 @@ class ProductController extends Controller
             ->where('id', $id)
             ->with(['category', 'images'])
             ->firstOrFail();
-            
+
         $categories = Category::all();
-        
+
         return response()->json([
             'product' => $product,
             'categories' => $categories
@@ -133,7 +145,7 @@ class ProductController extends Controller
         $product = Product::where('user_id', Auth::id())
             ->where('id', $id)
             ->firstOrFail();
-            
+
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
@@ -173,10 +185,10 @@ class ProductController extends Controller
                 Storage::disk('public')->delete($mainImage->path);
                 $mainImage->delete();
             }
-            
+
             // Upload new image
             $path = $request->file('image')->store('products', 'public');
-            
+
             // Create new image record
             $product->images()->create([
                 'path' => $path,
@@ -198,15 +210,15 @@ class ProductController extends Controller
         $product = Product::where('user_id', Auth::id())
             ->where('id', $id)
             ->firstOrFail();
-            
+
         // Delete product images from storage
         foreach ($product->images as $image) {
             Storage::disk('public')->delete($image->path);
         }
-        
+
         // Delete the product
         $product->delete();
-        
+
         return response()->json([
             'message' => 'Produit supprimé avec succès'
         ]);
