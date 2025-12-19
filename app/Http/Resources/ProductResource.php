@@ -40,7 +40,8 @@ class ProductResource extends JsonResource
             'rating' => $averageRating , 
             'category' => new CategoryResource($this->whenLoaded('category')) , 
             'firstActiveImage' => $this->firstActiveImage ,
-            'origin' => $this->origin
+            'origin' => $this->origin , 
+            'stock' => $this->stock
         ] ; 
     }
 }
