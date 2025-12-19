@@ -218,13 +218,13 @@ class ProductController extends Controller
             ->firstOrFail();
 
         // Delete product images from storage
-        if ($product->images->isNotEmpty()) {
-            foreach ($product->images as $image) {
-                if ($image->path && Storage::disk('public')->exists($image->path)) {
-                    Storage::disk('public')->delete($image->path);
-                }
-            }
-        }
+        // if ($product->images->isNotEmpty()) {
+        //     foreach ($product->images as $image) {
+        //         if ($image->path && Storage::disk('public')->exists($image->path)) {
+        //             Storage::disk('public')->delete($image->path);
+        //         }
+        //     }
+        // }
 
         // Delete the product
         $product->delete();
