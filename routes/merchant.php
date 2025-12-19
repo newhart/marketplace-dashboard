@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\MerchantApprovalController;
 use App\Http\Controllers\Merchant\DashboardController;
 use App\Http\Controllers\Merchant\ProductController;
 use App\Http\Controllers\Merchant\OrderController;
+use App\Http\Controllers\Merchant\BoutiqueController;
 use Illuminate\Support\Facades\Route;
 
 // Public merchant registration routes
@@ -34,6 +35,13 @@ Route::middleware(['auth:sanctum', 'verified', 'role:merchant'])->prefix('mercha
     // Order management
     Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');
     Route::get('/orders/{id}', [OrderController::class, 'show'])->name('orders.show');
+
+    // Boutique management
+    Route::get('/boutiques', [BoutiqueController::class, 'index'])->name('boutiques.index');
+    Route::post('/boutiques', [BoutiqueController::class, 'store'])->name('boutiques.store');
+    Route::get('/boutiques/{id}', [BoutiqueController::class, 'show'])->name('boutiques.show');
+    Route::put('/boutiques/{id}', [BoutiqueController::class, 'update'])->name('boutiques.update');
+    Route::delete('/boutiques/{id}', [BoutiqueController::class, 'destroy'])->name('boutiques.destroy');
 });
 
 // Admin routes for merchant approval - requires admin role
