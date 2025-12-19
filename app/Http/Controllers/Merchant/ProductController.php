@@ -56,6 +56,7 @@ class ProductController extends Controller
     /**
      * Store a newly created product in storage
      */
+
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -67,7 +68,8 @@ class ProductController extends Controller
             'origin' => 'nullable|string|max:255',
             'unity' => 'required|string',
             'stock' => 'nullable|integer|min:0',
-            'image' => 'nullable|image|max:2048',
+            'images' => 'nullable|array|max:5', // Tableau de max 5 images
+            'images.*' => 'image|max:2048', // Chaque image: max 2MB
         ]);
 
         if ($validator->fails()) {
@@ -90,14 +92,18 @@ class ProductController extends Controller
             'unity' => $request->unity,
         ]);
 
-        // Handle image upload
-        if ($request->hasFile('image')) {
-            $path = $request->file('image')->store('products', 'public');
-            // Create image record
-            $product->images()->create([
-                'path' => $path,
-                'is_main' => true
-            ]);
+        // Handle multiple images upload
+        if ($request->hasFile('images')) {
+            $isMain = true;
+            foreach ($request->file('images') as $image) {
+                $path = $image->store('products', 'public');
+                // Create image record
+                $product->images()->create([
+                    'path' => $path,
+                    'is_main' => $isMain
+                ]);
+                $isMain = false; // Seulement la première est main
+            }
         }
 
         return response()->json([
