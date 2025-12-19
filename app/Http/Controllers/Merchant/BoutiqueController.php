@@ -72,7 +72,6 @@ class BoutiqueController extends Controller
             'opening_date' => 'nullable|date',
             'closing_date' => 'nullable|date|after_or_equal:opening_date',
             'opening_hours' => 'nullable|array',
-            'is_active' => 'nullable|boolean',
         ]);
 
         if ($validator->fails()) {
