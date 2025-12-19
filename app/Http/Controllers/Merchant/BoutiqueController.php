@@ -69,8 +69,6 @@ class BoutiqueController extends Controller
             'city' => 'nullable|string|max:255',
             'postal_code' => 'nullable|string|max:20',
             'postal_box' => 'nullable|string|max:255',
-            'opening_date' => 'nullable|date',
-            'closing_date' => 'nullable|date|after_or_equal:opening_date',
             'opening_hours' => 'nullable|array',
         ]);
 
@@ -130,8 +128,6 @@ class BoutiqueController extends Controller
             'city' => 'nullable|string|max:255',
             'postal_code' => 'nullable|string|max:20',
             'postal_box' => 'nullable|string|max:255',
-            'opening_date' => 'nullable|date',
-            'closing_date' => 'nullable|date|after_or_equal:opening_date',
             'opening_hours' => 'nullable|array',
             'is_active' => 'nullable|boolean',
         ]);
