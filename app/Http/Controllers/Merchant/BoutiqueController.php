@@ -29,7 +29,7 @@ class BoutiqueController extends Controller
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('city', 'like', "%{$search}%");
+                    ->orWhere('city', 'like', "%{$search}%");
             });
         }
 
@@ -63,7 +63,7 @@ class BoutiqueController extends Controller
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'category' => 'nullable|string|max:255',
-            'photo' => 'nullable|image|max:2048',
+            'photo' => 'nullable', // Changed to nullable to accept file or base64 string
             'latitude' => 'nullable|numeric|between:-90,90',
             'longitude' => 'nullable|numeric|between:-180,180',
             'city' => 'nullable|string|max:255',
@@ -85,6 +85,39 @@ class BoutiqueController extends Controller
         if ($request->hasFile('photo')) {
             $path = $request->file('photo')->store('boutiques', 'public');
             $data['photo'] = $path;
+        } elseif ($request->filled('photo')) {
+            // Handle Base64 image
+            $photo = $request->input('photo');
+            if (is_string($photo)) {
+                if (preg_match('/^data:image\/(\w+);base64,/', $photo, $type)) {
+                    $imageContent = substr($photo, strpos($photo, ',') + 1);
+                    $type = strtolower($type[1]); // jpg, png, gif
+
+                    if (!in_array($type, ['jpg', 'jpeg', 'png', 'gif'])) {
+                        return response()->json([
+                            'message' => 'Validation failed',
+                            'errors' => ['photo' => ['Format image non supporté (jpg, jpeg, png, gif uniquement)']]
+                        ], 422);
+                    }
+
+                    $decodedImage = base64_decode($imageContent);
+                    if ($decodedImage === false) {
+                        return response()->json([
+                            'message' => 'Validation failed',
+                            'errors' => ['photo' => ['Invalid base64 string']]
+                        ], 422);
+                    }
+
+                    $filename = 'boutiques/' . uniqid() . '.' . $type;
+                    Storage::disk('public')->put($filename, $decodedImage);
+                    $data['photo'] = $filename;
+                } elseif (strpos($photo, 'file://') === 0) {
+                    return response()->json([
+                        'message' => 'Validation failed',
+                        'errors' => ['photo' => ['Les URIs file:// ne sont pas supportées. Veuillez envoyer l\'image en Base64.']]
+                    ], 422);
+                }
+            }
         }
 
         $data['merchant_id'] = $merchant->id;
@@ -122,7 +155,7 @@ class BoutiqueController extends Controller
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'category' => 'nullable|string|max:255',
-            'photo' => 'nullable|image|max:2048',
+            'photo' => 'nullable', // Changed to nullable
             'latitude' => 'nullable|numeric|between:-90,90',
             'longitude' => 'nullable|numeric|between:-180,180',
             'city' => 'nullable|string|max:255',
@@ -149,6 +182,44 @@ class BoutiqueController extends Controller
             }
             $path = $request->file('photo')->store('boutiques', 'public');
             $data['photo'] = $path;
+        } elseif ($request->filled('photo')) {
+            // Handle Base64 image
+            $photo = $request->input('photo');
+            if (is_string($photo)) {
+                if (preg_match('/^data:image\/(\w+);base64,/', $photo, $type)) {
+                    // Delete old photo if exists
+                    if ($boutique->photo) {
+                        Storage::disk('public')->delete($boutique->photo);
+                    }
+
+                    $imageContent = substr($photo, strpos($photo, ',') + 1);
+                    $type = strtolower($type[1]); // jpg, png, gif
+
+                    if (!in_array($type, ['jpg', 'jpeg', 'png', 'gif'])) {
+                        return response()->json([
+                            'message' => 'Validation failed',
+                            'errors' => ['photo' => ['Format image non supporté (jpg, jpeg, png, gif uniquement)']]
+                        ], 422);
+                    }
+
+                    $decodedImage = base64_decode($imageContent);
+                    if ($decodedImage === false) {
+                        return response()->json([
+                            'message' => 'Validation failed',
+                            'errors' => ['photo' => ['Invalid base64 string']]
+                        ], 422);
+                    }
+
+                    $filename = 'boutiques/' . uniqid() . '.' . $type;
+                    Storage::disk('public')->put($filename, $decodedImage);
+                    $data['photo'] = $filename;
+                } elseif (strpos($photo, 'file://') === 0) {
+                    return response()->json([
+                        'message' => 'Validation failed',
+                        'errors' => ['photo' => ['Les URIs file:// ne sont pas supportées. Veuillez envoyer l\'image en Base64.']]
+                    ], 422);
+                }
+            }
         }
 
         $boutique->update($data);
