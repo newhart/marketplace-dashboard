@@ -59,7 +59,16 @@ class BoutiqueController extends Controller
             ], 403);
         }
 
-        $validator = Validator::make($request->all(), [
+        // Pre-process request data to handle JSON strings in FormData
+        $input = $request->all();
+        if (isset($input['opening_hours']) && is_string($input['opening_hours'])) {
+            $decoded = json_decode($input['opening_hours'], true);
+            if (json_last_error() === JSON_ERROR_NONE) {
+                $input['opening_hours'] = $decoded;
+            }
+        }
+
+        $validator = Validator::make($input, [
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'category' => 'nullable|string|max:255',
@@ -151,7 +160,16 @@ class BoutiqueController extends Controller
             $q->where('user_id', Auth::id());
         })->findOrFail($id);
 
-        $validator = Validator::make($request->all(), [
+        // Pre-process request data to handle JSON strings in FormData
+        $input = $request->all();
+        if (isset($input['opening_hours']) && is_string($input['opening_hours'])) {
+            $decoded = json_decode($input['opening_hours'], true);
+            if (json_last_error() === JSON_ERROR_NONE) {
+                $input['opening_hours'] = $decoded;
+            }
+        }
+
+        $validator = Validator::make($input, [
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'category' => 'nullable|string|max:255',
