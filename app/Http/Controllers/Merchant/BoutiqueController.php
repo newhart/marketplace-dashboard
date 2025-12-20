@@ -179,8 +179,7 @@ class BoutiqueController extends Controller
             'city' => 'nullable|string|max:255',
             'postal_code' => 'nullable|string|max:20',
             'postal_box' => 'nullable|string|max:255',
-            'opening_hours' => 'nullable|array',
-            'is_active' => 'nullable|boolean',
+            'opening_hours' => 'nullable|array'
         ]);
 
         if ($validator->fails()) {
