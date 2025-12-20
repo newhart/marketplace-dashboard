@@ -4,6 +4,8 @@ namespace App\Http\Resources;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use App\Models\Product;
+use App\Http\Resources\ProductResource;
 
 class BoutiqueResource extends JsonResource
 {
@@ -32,6 +34,12 @@ class BoutiqueResource extends JsonResource
             'is_active' => $this->is_active,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
+            'products' => ProductResource::collection(
+                Product::where('user_id', $this->merchant->user_id)
+                    ->inRandomOrder()
+                    ->limit(4)
+                    ->get()
+            ),
         ];
     }
 }
