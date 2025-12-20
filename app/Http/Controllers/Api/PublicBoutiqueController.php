@@ -39,4 +39,22 @@ class PublicBoutiqueController extends Controller
 
         return new BoutiqueCollection($boutiques);
     }
+
+    /**
+     * Display the specified active boutique (public endpoint)
+     */
+    public function show($id)
+    {
+        $boutique = Boutique::where('is_active', true)
+            ->with(['merchant'])
+            ->find($id);
+
+        if (!$boutique) {
+            return response()->json([
+                'message' => 'Boutique non trouvée ou inactive'
+            ], 404);
+        }
+
+        return response()->json(new BoutiqueResource($boutique));
+    }
 }

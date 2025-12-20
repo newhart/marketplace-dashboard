@@ -11,6 +11,9 @@ use Illuminate\Support\Facades\Route;
 Route::get('/boutiques', [PublicBoutiqueController::class, 'index'])
     ->name('public.boutiques.index');
 
+Route::get('/boutiques/{id}', [PublicBoutiqueController::class, 'show'])
+    ->name('public.boutiques.show');
+
 // Customer registration routes
 Route::post('/customer/register', [CustomerRegistrationController::class, 'register'])
     ->middleware('guest')
