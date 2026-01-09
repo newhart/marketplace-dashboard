@@ -192,9 +192,21 @@ class OrderController extends Controller
                 return response()->json(['error' => 'Commande non trouvée ou ne contient pas vos produits'], 404);
             }
 
+            // Structure la réponse avec la commande et les informations supplémentaires
             return response()->json([
                 'success' => true,
-                'data' => $orderDetails
+                'data' => [
+                    'id' => $orderDetails['order']->id,
+                    'user_id' => $orderDetails['order']->user_id,
+                    'status' => $orderDetails['order']->status,
+                    'total_amount' => $orderDetails['order']->total_amount,
+                    'created_at' => $orderDetails['order']->created_at,
+                    'updated_at' => $orderDetails['order']->updated_at,
+                    'items' => $orderDetails['order']->items,
+                    'user' => $orderDetails['order']->user,
+                    'customer_phone' => $orderDetails['customer_phone'],
+                    'shipping_address' => $orderDetails['shipping_address']
+                ]
             ]);
         } catch (\Exception $e) {
             return response()->json([

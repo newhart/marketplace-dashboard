@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Address;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
@@ -86,7 +87,7 @@ class OrderService
      *
      * @param int $orderId
      * @param User $merchant
-     * @return Order|null
+     * @return array|null
      */
     public function getMerchantOrderDetail($orderId, User $merchant)
     {
@@ -103,7 +104,50 @@ class OrderService
         })
         ->find($orderId);
         
-        return $order;
+        if (!$order) {
+            return null;
+        }
+        
+        // Récupérer le numéro de téléphone du client
+        $customerPhone = $order->user ? $order->user->phone : null;
+        
+        // Récupérer l'adresse de livraison du client
+        $shippingAddress = null;
+        if ($order->user) {
+            $shippingAddress = Address::where('user_id', $order->user->id)
+                ->where('type', 'shipping')
+                ->orderBy('is_default', 'desc')
+                ->orderBy('created_at', 'desc')
+                ->first();
+        }
+        
+        // Formater l'adresse de livraison
+        $shippingAddressData = null;
+        if ($shippingAddress) {
+            $shippingAddressData = [
+                'id' => $shippingAddress->id,
+                'title' => $shippingAddress->title,
+                'first_name' => $shippingAddress->first_name,
+                'last_name' => $shippingAddress->last_name,
+                'company' => $shippingAddress->company,
+                'address_line_1' => $shippingAddress->address_line_1,
+                'address_line_2' => $shippingAddress->address_line_2,
+                'city' => $shippingAddress->city,
+                'state' => $shippingAddress->state,
+                'postal_code' => $shippingAddress->postal_code,
+                'country' => $shippingAddress->country,
+                'phone' => $shippingAddress->phone,
+                'full_address' => $shippingAddress->full_address,
+                'is_default' => $shippingAddress->is_default,
+            ];
+        }
+        
+        // Retourner la commande avec les informations supplémentaires
+        return [
+            'order' => $order,
+            'customer_phone' => $customerPhone,
+            'shipping_address' => $shippingAddressData
+        ];
     }
     
     /**
