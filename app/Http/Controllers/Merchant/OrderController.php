@@ -41,10 +41,12 @@ class OrderController extends Controller
                     $q->where('user_id', auth()->id());
                 })->with('product');
             },
-            'user.addresses' => function ($query) {
-                $query->where('type', 'shipping')
-                    ->orderBy('is_default', 'desc')
-                    ->orderBy('created_at', 'desc');
+            'user' => function ($query) {
+                $query->with(['addresses' => function ($subQuery) {
+                    $subQuery->where('type', 'shipping')
+                        ->orderBy('is_default', 'desc')
+                        ->orderBy('created_at', 'desc');
+                }]);
             }
         ])->findOrFail($id);
 
@@ -57,10 +59,8 @@ class OrderController extends Controller
         $customerPhone = $order->user->phone ?? null;
 
         // Récupérer l'adresse de livraison (par défaut ou première disponible)
-        $shippingAddress = $order->user->addresses
-            ->where('type', 'shipping')
-            ->sortByDesc('is_default')
-            ->first();
+        // Les adresses sont déjà filtrées dans le with() ci-dessus
+        $shippingAddress = $order->user->addresses->first();
 
         $shippingAddressData = null;
         if ($shippingAddress) {
