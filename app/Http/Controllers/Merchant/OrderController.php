@@ -94,30 +94,54 @@ class OrderController extends Controller
      * Valider un item de commande
      *
      * @param Request $request
-     * @param int $orderItemId
+     * @param int $orderId
+     * @param int|null $orderItemId
      * @return \Illuminate\Http\JsonResponse
      */
-    public function validateItem(Request $request, $orderItemId)
+    public function validateItem(Request $request, $orderId, $orderItemId = null)
     {
         $merchant = auth()->user();
 
-        // Valider l'item de commande
-        $orderItem = $this->orderService->validateOrderItem($orderItemId, $merchant);
+        // Récupérer l'ID de l'item depuis l'URL ou le body
+        if ($orderItemId === null) {
+            $request->validate([
+                'order_item_id' => 'required|integer|exists:order_items,id'
+            ]);
+            $orderItemId = $request->input('order_item_id');
+        }
 
-        if (!$orderItem) {
+        // Vérifier que l'item appartient à cette commande
+        $order = Order::whereHas('items.product', function ($query) use ($merchant) {
+            $query->where('user_id', $merchant->id);
+        })->findOrFail($orderId);
+
+        // Vérifier que l'item appartient à cette commande et au commerçant
+        $orderItem = $order->items()
+            ->whereHas('product', function ($query) use ($merchant) {
+                $query->where('user_id', $merchant->id);
+            })
+            ->findOrFail($orderItemId);
+
+        // Valider l'item de commande
+        $validatedOrderItem = $this->orderService->validateOrderItem($orderItemId, $merchant);
+
+        if (!$validatedOrderItem) {
             return response()->json([
                 'success' => false,
                 'message' => 'Item de commande non trouvé ou vous n\'avez pas l\'autorisation de valider cet item.'
             ], 404);
         }
 
+        // Recharger la commande pour obtenir le statut à jour
+        $order->refresh();
+
         return response()->json([
             'success' => true,
             'message' => 'Item de commande validé avec succès.',
             'data' => [
-                'order_item' => $orderItem,
-                'order' => $orderItem->order,
-                'is_order_complete' => $orderItem->order->status === 'validated'
+                'order_item' => $validatedOrderItem,
+                'order' => $order,
+                'is_order_complete' => $order->status === 'validated'
             ]
         ]);
     }

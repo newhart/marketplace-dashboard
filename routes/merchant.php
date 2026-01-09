@@ -35,7 +35,8 @@ Route::middleware(['auth:sanctum', 'verified', 'role:merchant'])->prefix('mercha
     // Order management
     Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');
     Route::get('/orders/{id}', [OrderController::class, 'show'])->name('orders.show');
-    Route::post('/orders/items/{orderItemId}/validate', [OrderController::class, 'validateItem'])->name('orders.items.validate');
+    // Route pour valider un item de commande - accepte l'ID de l'item dans l'URL ou dans le body
+    Route::post('/orders/{orderId}/items/{orderItemId?}/validate', [OrderController::class, 'validateItem'])->name('orders.items.validate');
 
     // Boutique management
     Route::get('/boutiques', [BoutiqueController::class, 'index'])->name('boutiques.index');
