@@ -12,8 +12,14 @@ class ProductService
 {
     public function show(Product $product, Request $request = null): array
     {
-        // Charger les relations nécessaires
-        $product->load(['category', 'images', 'reviews']);
+        // Charger les relations nécessaires avec limite de 5 images maximum
+        $product->load([
+            'category',
+            'images' => function ($query) {
+                $query->limit(5)->orderBy('is_main', 'desc')->orderBy('created_at', 'asc');
+            },
+            'reviews'
+        ]);
 
         // Déterminer le type de produits similaires à inclure
         $similarType = $request?->get('similar_type', 'category'); // category, related, price

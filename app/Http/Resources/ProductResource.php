@@ -21,6 +21,19 @@ class ProductResource extends JsonResource
             $imageUrl = asset('storage/' . $imagePath);
         }
 
+        // Récupérer toutes les images (limitées à 5 dans le service)
+        $images = [];
+        if ($this->relationLoaded('images')) {
+            $images = $this->images->map(function ($image) {
+                return [
+                    'id' => $image->id,
+                    'path' => asset('storage/' . $image->path),
+                    'is_main' => $image->is_main ?? false,
+                    'created_at' => $image->created_at
+                ];
+            })->toArray();
+        }
+
         // Calculer la moyenne des avis (rating moyen)
         $averageRating = null;
         if ($this->relationLoaded('reviews')) {
@@ -36,6 +49,7 @@ class ProductResource extends JsonResource
             'unity' => $this->unity ,
             'description' => $this->description , 
             'image' => $imageUrl ?? $this->image, 
+            'images' => $images, // Toutes les images (jusqu'à 5 maximum)
             'price' => $this->price , 
             'rating' => $averageRating , 
             'category' => new CategoryResource($this->whenLoaded('category')) , 

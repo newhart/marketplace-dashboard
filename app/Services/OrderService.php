@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Notifications\NewOrderNotification;
 use App\Notifications\MerchantOrderNotification;
 use App\Notifications\OrderCancelledNotification;
+use App\Notifications\OrderValidatedNotification;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 
@@ -165,5 +166,69 @@ class OrderService
             
             return true;
         });
+    }
+
+    /**
+     * Valider un OrderItem par un commerçant
+     *
+     * @param int $orderItemId
+     * @param User $merchant
+     * @return OrderItem|null
+     */
+    public function validateOrderItem($orderItemId, User $merchant)
+    {
+        // Récupérer l'item de commande
+        $orderItem = OrderItem::with(['order', 'product'])->find($orderItemId);
+        
+        if (!$orderItem) {
+            return null;
+        }
+
+        // Vérifier que le produit appartient au commerçant
+        if ($orderItem->product->user_id !== $merchant->id) {
+            return null;
+        }
+
+        // Vérifier que l'item n'est pas déjà validé
+        if ($orderItem->isValidated()) {
+            return $orderItem;
+        }
+
+        return DB::transaction(function () use ($orderItem) {
+            // Marquer l'item comme validé
+            $orderItem->validated_at = now();
+            $orderItem->save();
+
+            // Vérifier si tous les items de la commande sont validés
+            $this->checkAndUpdateOrderStatus($orderItem->order);
+
+            return $orderItem->fresh(['order', 'product']);
+        });
+    }
+
+    /**
+     * Vérifier si tous les items d'une commande sont validés et mettre à jour le statut
+     *
+     * @param Order $order
+     * @return void
+     */
+    public function checkAndUpdateOrderStatus(Order $order)
+    {
+        // Recharger la commande avec tous ses items
+        $order->load('items');
+
+        // Vérifier si tous les items sont validés
+        $allItemsValidated = $order->items->every(function ($item) {
+            return $item->isValidated();
+        });
+
+        // Si tous les items sont validés et que la commande est encore en "pending"
+        if ($allItemsValidated && $order->status === 'pending') {
+            $order->status = 'validated';
+            $order->save();
+
+            // Envoyer une notification au client
+            $order->user->notify(new OrderValidatedNotification($order));
+        }
     }
 }
