@@ -95,20 +95,18 @@ class OrderController extends Controller
      *
      * @param Request $request
      * @param int $orderId
-     * @param int|null $orderItemId
      * @return \Illuminate\Http\JsonResponse
      */
-    public function validateItem(Request $request, $orderId, $orderItemId = null)
+    public function validateItem(Request $request, $orderId)
     {
         $merchant = auth()->user();
 
-        // Récupérer l'ID de l'item depuis l'URL ou le body
-        if ($orderItemId === null) {
-            $request->validate([
-                'order_item_id' => 'required|integer|exists:order_items,id'
-            ]);
-            $orderItemId = $request->input('order_item_id');
-        }
+        // Valider et récupérer l'ID de l'item depuis le body de la requête
+        $request->validate([
+            'order_item_id' => 'required|integer|exists:order_items,id'
+        ]);
+        
+        $orderItemId = $request->input('order_item_id');
 
         // Vérifier que l'item appartient à cette commande
         $order = Order::whereHas('items.product', function ($query) use ($merchant) {
