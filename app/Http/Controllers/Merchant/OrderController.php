@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Merchant;
 
 use App\Http\Controllers\Controller;
+use App\Models\Address;
 use App\Models\Order;
 use App\Services\OrderService;
 use Illuminate\Http\Request;
@@ -41,8 +42,10 @@ class OrderController extends Controller
                     $q->where('user_id', auth()->id());
                 })->with('product');
             },
-            'user' => function ($query) {
-                $query->with("addresses");
+            'user.addresses' => function ($query) {
+                $query->where('type', 'shipping')
+                    ->orderBy('is_default', 'desc')
+                    ->orderBy('created_at', 'desc');
             }
         ])->findOrFail($id);
 
@@ -52,11 +55,18 @@ class OrderController extends Controller
         });
 
         // Récupérer le numéro de téléphone du client
-        $customerPhone = $order->user->phone ?? null;
+        $customerPhone = $order->user ? $order->user->phone : null;
 
-        // Récupérer l'adresse de livraison (par défaut ou première disponible)
-        // Les adresses sont déjà filtrées dans le with() ci-dessus
-        $shippingAddress = $order->user->addresses->first();
+        // Charger les adresses de livraison de l'utilisateur si l'utilisateur existe
+        $shippingAddress = null;
+        if ($order->user) {
+            // Charger les adresses de livraison en faisant une requête directe
+            $shippingAddress = Address::where('user_id', $order->user->id)
+                ->where('type', 'shipping')
+                ->orderBy('is_default', 'desc')
+                ->orderBy('created_at', 'desc')
+                ->first();
+        }
 
         $shippingAddressData = null;
         if ($shippingAddress) {
@@ -79,10 +89,19 @@ class OrderController extends Controller
         }
 
         return response()->json([
-            'order' => $order,
-            'total_amount' => $calculatedTotal,
-            'customer_phone' => $customerPhone,
-            'shipping_address' => $shippingAddressData
+            'success' => true,
+            'data' => [
+                'id' => $order->id,
+                'user_id' => $order->user_id,
+                'status' => $order->status,
+                'total_amount' => $calculatedTotal,
+                'created_at' => $order->created_at,
+                'updated_at' => $order->updated_at,
+                'items' => $order->items,
+                'user' => $order->user,
+                'customer_phone' => $customerPhone,
+                'shipping_address' => $shippingAddressData
+            ]
         ]);
     }
 
