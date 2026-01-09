@@ -42,11 +42,7 @@ class OrderController extends Controller
                 })->with('product');
             },
             'user' => function ($query) {
-                $query->with(['addresses' => function ($subQuery) {
-                    $subQuery->where('type', 'shipping')
-                        ->orderBy('is_default', 'desc')
-                        ->orderBy('created_at', 'desc');
-                }]);
+                $query->with("addresses");
             }
         ])->findOrFail($id);
 
