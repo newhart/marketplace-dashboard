@@ -34,6 +34,7 @@ class OrderController extends Controller
 
     public function show($id)
     {
+        dd('ok here');
         $order = Order::whereHas('items.product', function ($query) {
             $query->where('user_id', auth()->id());
         })->with([
