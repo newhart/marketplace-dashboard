@@ -161,7 +161,10 @@ class ProductController extends Controller
             'origin' => 'nullable|string|max:255',
             'unity' => 'required|string',
             'stock' => 'nullable|integer|min:0',
-            'image' => 'nullable|image|max:2048',
+            'images' => 'nullable|array|max:5', // Tableau de max 5 images
+            'images.*' => 'image|max:2048', // Chaque image: max 2MB
+            'images_to_delete' => 'nullable|array', // IDs des images à supprimer
+            'images_to_delete.*' => 'integer|exists:images,id', // Chaque ID doit exister
         ]);
 
         if ($validator->fails()) {
@@ -183,23 +186,63 @@ class ProductController extends Controller
             'unity' => $request->unity,
         ]);
 
-        // Handle image upload
-        if ($request->hasFile('image')) {
-            // Delete existing main image if exists
-            $mainImage = $product->images()->where('is_main', true)->first();
-            if ($mainImage) {
-                Storage::disk('public')->delete($mainImage->path);
-                $mainImage->delete();
+        // Charger les images existantes
+        $existingImagesCount = $product->images()->count();
+        $newImagesCount = $request->hasFile('images') ? count($request->file('images')) : 0;
+        $imagesToDeleteCount = $request->has('images_to_delete') ? count($request->images_to_delete) : 0;
+        $totalImagesAfterUpdate = $existingImagesCount - $imagesToDeleteCount + $newImagesCount;
+
+        // Vérifier que le total ne dépasse pas 5 images
+        if ($totalImagesAfterUpdate > 5) {
+            return response()->json([
+                'message' => 'Validation failed',
+                'errors' => [
+                    'images' => ['Le nombre total d\'images ne peut pas dépasser 5. Actuellement: ' . $existingImagesCount . ', nouvelles: ' . $newImagesCount . ', à supprimer: ' . $imagesToDeleteCount . ', total après mise à jour: ' . $totalImagesAfterUpdate]
+                ]
+            ], 422);
+        }
+
+        // Supprimer les images demandées
+        if ($request->has('images_to_delete') && is_array($request->images_to_delete)) {
+            foreach ($request->images_to_delete as $imageId) {
+                $image = $product->images()->find($imageId);
+                if ($image) {
+                    // Supprimer le fichier du stockage
+                    if ($image->path && Storage::disk('public')->exists($image->path)) {
+                        Storage::disk('public')->delete($image->path);
+                    }
+                    // Supprimer l'enregistrement
+                    $image->delete();
+                }
             }
 
-            // Upload new image
-            $path = $request->file('image')->store('products', 'public');
+            // Si l'image principale a été supprimée, définir la première image restante comme principale
+            $hasMainImage = $product->images()->where('is_main', true)->exists();
+            if (!$hasMainImage) {
+                $firstImage = $product->images()->orderBy('created_at', 'asc')->first();
+                if ($firstImage) {
+                    $firstImage->update(['is_main' => true]);
+                }
+            }
+        }
 
-            // Create new image record
-            $product->images()->create([
-                'path' => $path,
-                'is_main' => true
-            ]);
+        // Ajouter les nouvelles images
+        if ($request->hasFile('images')) {
+            // Vérifier s'il y a déjà une image principale
+            $hasMainImage = $product->images()->where('is_main', true)->exists();
+            $isMain = !$hasMainImage; // La première nouvelle image sera principale si aucune n'existe
+
+            foreach ($request->file('images') as $image) {
+                $path = $image->store('products', 'public');
+                
+                // Créer l'enregistrement de l'image
+                $product->images()->create([
+                    'path' => $path,
+                    'is_main' => $isMain
+                ]);
+                
+                $isMain = false; // Seulement la première nouvelle image peut être principale
+            }
         }
 
         return response()->json([
