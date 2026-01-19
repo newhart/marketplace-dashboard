@@ -55,10 +55,13 @@ class TransporteurResource extends Resource
                             ->maxLength(20),
                         TextInput::make('password')
                             ->password()
-                            ->dehydrateStateUsing(fn($state) => Hash::make($state))
-                            ->dehydrated(fn($state) => filled($state))
-                            ->required(fn(string $context): bool => $context === 'create')
-                            ->helperText('Laissez vide pour conserver le mot de passe actuel lors de la modification'),
+                            ->dehydrated(false)
+                            ->required(fn($get, $context): bool => $context === 'create')
+                            ->helperText(fn($get, $context): string => 
+                                $context === 'create' 
+                                    ? 'Laissez vide pour générer un mot de passe automatiquement'
+                                    : 'Laissez vide pour conserver le mot de passe actuel'
+                            ),
                         Select::make('type')
                             ->options([
                                 'transporter' => 'Transporteur',

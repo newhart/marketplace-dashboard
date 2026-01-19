@@ -8,6 +8,7 @@ use App\Notifications\TransporterCreatedNotification;
 use Filament\Resources\Pages\CreateRecord;
 use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class CreateTransporteur extends CreateRecord
@@ -21,14 +22,19 @@ class CreateTransporteur extends CreateRecord
         // S'assurer que le type est bien 'transporter'
         $data['type'] = User::TYPE_TRANSPORTER;
         
+        // Récupérer le mot de passe depuis le formulaire (car dehydrated=false)
+        $passwordFromForm = $this->form->getState()['password'] ?? null;
+        
         // Stocker le mot de passe en clair avant le hashage
-        if (!empty($data['password'])) {
-            $this->plainPassword = $data['password'];
+        if (!empty($passwordFromForm)) {
+            $this->plainPassword = $passwordFromForm;
         } else {
             // Générer un mot de passe si non fourni
             $this->plainPassword = Str::random(12);
-            $data['password'] = $this->plainPassword;
         }
+        
+        // Hasher le mot de passe pour la base de données
+        $data['password'] = Hash::make($this->plainPassword);
 
         // S'assurer que is_active est défini
         if (!isset($data['is_active'])) {
@@ -43,28 +49,41 @@ class CreateTransporteur extends CreateRecord
         $user = $this->record;
         
         // Utiliser le mot de passe en clair stocké
-        $plainPassword = $this->plainPassword ?? Str::random(12);
+        $plainPassword = $this->plainPassword;
         
-        // Si le mot de passe n'était pas fourni, mettre à jour avec le nouveau généré
-        if (!$this->plainPassword) {
+        if (empty($plainPassword)) {
+            // Si pour une raison quelconque le mot de passe n'est pas défini, en générer un
+            $plainPassword = Str::random(12);
             $user->password = Hash::make($plainPassword);
             $user->save();
         }
 
-        // Envoyer l'email avec les identifiants
+        // Envoyer l'email avec les identifiants immédiatement
         try {
+            // Rafraîchir l'utilisateur pour s'assurer qu'il est à jour
+            $user->refresh();
+            
+            // Envoyer la notification (sans queue pour un envoi immédiat)
             $user->notify(new TransporterCreatedNotification($user, $plainPassword));
             
             Notification::make()
                 ->title('Transporteur créé avec succès')
                 ->success()
-                ->body("Le transporteur {$user->name} a été créé et un email avec ses identifiants a été envoyé.")
+                ->body("Le transporteur {$user->name} a été créé et un email avec ses identifiants a été envoyé à {$user->email}.")
                 ->send();
         } catch (\Exception $e) {
+            // Logger l'erreur pour le débogage
+            Log::error('Erreur lors de l\'envoi de l\'email au transporteur', [
+                'user_id' => $user->id,
+                'email' => $user->email,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
             Notification::make()
                 ->title('Transporteur créé mais email non envoyé')
                 ->warning()
-                ->body("Le transporteur {$user->name} a été créé mais l'email n'a pas pu être envoyé : " . $e->getMessage())
+                ->body("Le transporteur {$user->name} a été créé mais l'email n'a pas pu être envoyé. Erreur : " . $e->getMessage())
                 ->send();
         }
     }
