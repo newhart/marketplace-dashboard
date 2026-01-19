@@ -68,6 +68,7 @@ class ProductController extends Controller
             'origin' => 'nullable|string|max:255',
             'unity' => 'required|string',
             'stock' => 'nullable|integer|min:0',
+            'barcode' => 'nullable|string|max:255',
             'images' => 'nullable|array|max:5', // Tableau de max 5 images
             'images.*' => 'image|max:2048', // Chaque image: max 2MB
         ]);
@@ -90,6 +91,7 @@ class ProductController extends Controller
             'stock' => $request->stock ?? 0,
             'origin' => $request->origin,
             'unity' => $request->unity,
+            'barcode' => $request->barcode,
         ]);
 
         // Handle multiple images upload
@@ -161,6 +163,7 @@ class ProductController extends Controller
             'origin' => 'nullable|string|max:255',
             'unity' => 'required|string',
             'stock' => 'nullable|integer|min:0',
+            'barcode' => 'nullable|string|max:255',
             'images' => 'nullable|array|max:5', // Tableau de max 5 images
             'images.*' => 'image|max:2048', // Chaque image: max 2MB
             'images_to_delete' => 'nullable|array', // IDs des images à supprimer
@@ -184,6 +187,7 @@ class ProductController extends Controller
             'stock' => $request->stock ?? 0,
             'origin' => $request->origin,
             'unity' => $request->unity,
+            'barcode' => $request->barcode,
         ]);
 
         // Charger les images existantes
