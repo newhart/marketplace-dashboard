@@ -154,4 +154,15 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         return $this->type === self::TYPE_MERCHANT;
     }
+
+    /**
+     * Get the notification routing information for the Firebase channel.
+     *
+     * @param  \Illuminate\Notifications\Notification  $notification
+     * @return string|null
+     */
+    public function routeNotificationForFirebase($notification)
+    {
+        return $this->fcm_token;
+    }
 }

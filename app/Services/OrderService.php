@@ -11,6 +11,7 @@ use App\Notifications\NewOrderNotification;
 use App\Notifications\MerchantOrderNotification;
 use App\Notifications\OrderCancelledNotification;
 use App\Notifications\OrderValidatedNotification;
+use App\Notifications\OrderValidatedForTransporterNotification;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 
@@ -273,6 +274,16 @@ class OrderService
 
             // Envoyer une notification au client
             $order->user->notify(new OrderValidatedNotification($order));
+
+            // Envoyer une notification push à tous les transporteurs actifs
+            $transporters = User::where('type', User::TYPE_TRANSPORTER)
+                ->where('is_active', true)
+                ->whereNotNull('fcm_token')
+                ->get();
+
+            foreach ($transporters as $transporter) {
+                $transporter->notify(new OrderValidatedForTransporterNotification($order));
+            }
         }
     }
 }
