@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\HealthCheckController;
+use App\Http\Controllers\Api\FCMTokenController;
+use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\CategoryController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -27,6 +29,14 @@ Route::get('/server-info', [HealthCheckController::class, 'serverInfo']);
 // Promotional Banners
 Route::get('/promotional-banners', [App\Http\Controllers\Api\PromotionalBannerController::class, 'index']);
 
+// FCM Token Management
+Route::post('/users/fcm-token', [FCMTokenController::class, 'saveFCMToken']);
+
+// Notifications
+Route::prefix('notifications')->group(function () {
+    Route::post('/send', [NotificationController::class, 'send']);
+    Route::post('/send-bulk', [NotificationController::class, 'sendBulk']);
+});
 
 Route::middleware(['auth:sanctum'])->get('/user', function (Request $request) {
     return $request->user();
