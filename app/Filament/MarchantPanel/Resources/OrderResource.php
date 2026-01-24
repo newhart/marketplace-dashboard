@@ -26,7 +26,7 @@ class OrderResource extends Resource
         $merchantId = auth()->id();
 
         return $table
-            ->modifyQueryUsing(fn (Builder $q) => $q->whereHas('items.product', fn ($q2) => $q2->where('user_id', $merchantId)))
+            ->modifyQueryUsing(fn (Builder $q) => $q->whereHas('items', fn (Builder $qItems) => $qItems->whereHas('product', fn (Builder $qProduct) => $qProduct->where('user_id', $merchantId))))
             ->columns([
                 Tables\Columns\TextColumn::make('id')
                     ->label('N°')

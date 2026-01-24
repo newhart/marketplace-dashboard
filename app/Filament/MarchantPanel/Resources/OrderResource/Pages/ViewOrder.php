@@ -14,6 +14,9 @@ class ViewOrder extends ViewRecord
 
     protected function getItemsDetailForMerchant(): string
     {
+        if ($this->record === null) {
+            return 'Aucun de vos produits dans cette commande.';
+        }
         $merchantId = auth()->id();
         $items = $this->record->items()
             ->whereHas('product', fn ($q) => $q->where('user_id', $merchantId))
