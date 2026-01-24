@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use App\Models\User;
+use Filament\Facades\Filament;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
@@ -46,7 +47,7 @@ class TransporterCreatedNotification extends Notification
             ->line('**Email :** ' . $this->user->email)
             ->line('**Mot de passe :** ' . $this->password)
             ->line('⚠️ **Important :** Pour des raisons de sécurité, nous vous recommandons fortement de changer votre mot de passe après votre première connexion.')
-            ->action('Se connecter', url('/login'))
+            ->action('Se connecter', Filament::getPanel('transporteur')->getLoginUrl() ?? url('/transporteur/login'))
             ->line('Si vous avez des questions, n\'hésitez pas à nous contacter.')
             ->line('Bienvenue sur notre plateforme !');
     }
