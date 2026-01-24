@@ -25,6 +25,7 @@ class TransporteurPanelProvider extends PanelProvider
             ->id('transporteur')
             ->path('transporteur')
             ->login(\App\Filament\Pages\CustomLogin::class)
+            ->profile(\App\Filament\TransporteurPanel\Pages\EditProfile::class, isSimple: false)
             ->brandName('OnaMarketplace - Transporteur')
             ->brandLogo(asset('images/logo.png'))
             ->brandLogoHeight('3rem')
