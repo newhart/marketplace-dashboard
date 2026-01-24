@@ -178,19 +178,26 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
 
     /**
      * Détermine si l'utilisateur peut accéder à un panel Filament.
-     * - Admin : rôle 'admin' (super admin)
+     * - Super admin (rôle 'admin') : accès à tous les panels
+     * - Admin : panel admin
      * - Marchant : type 'merchant' ou 'seller', ou rôle 'merchant'
      * - Transporteur : type 'transporter' ou 'transporteur', ou rôle 'transporter' ou 'transporteur'
      * Les comptes désactivés (is_active=false) ne peuvent accéder à aucun panel.
      */
     public function canAccessPanel(Panel $panel): bool
     {
-        if ($this->is_active === false) {
+        // Comptes désactivés (null = actif par défaut pour compatibilité)
+        if (($this->is_active ?? true) === false) {
             return false;
         }
 
         $role = strtolower((string) ($this->role ?? ''));
         $type = strtolower((string) ($this->type ?? ''));
+
+        // Super admin : accès à tous les panels
+        if ($role === 'admin') {
+            return true;
+        }
 
         return match ($panel->getId()) {
             'admin' => $role === 'admin',

@@ -29,8 +29,10 @@ class TransporteurPanelProvider extends PanelProvider
             ->brandLogo(asset('images/logo.png'))
             ->brandLogoHeight('3rem')
             ->colors([
-                'primary' => Color::Blue,
-                'secondary' => Color::Gray,
+                'primary' => Color::hex('#02C6B0'),
+                'secondary' => Color::hex('#fcf3ef'),
+                'tertiary' => Color::hex('#FFE6C7'),
+                'gray' => Color::Gray,
             ])
             ->darkMode(false)
             ->viteTheme('resources/css/filament/admin/theme.css')
