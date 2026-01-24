@@ -19,8 +19,9 @@ class CreateTransporteur extends CreateRecord
 
     protected function mutateFormDataBeforeCreate(array $data): array
     {
-        // S'assurer que le type est bien 'transporter'
+        // S'assurer que le type et le rôle permettent l'accès au panel transporteur
         $data['type'] = User::TYPE_TRANSPORTER;
+        $data['role'] = 'transporter';
         
         // Récupérer le mot de passe depuis le formulaire (car dehydrated=false)
         $passwordFromForm = $this->form->getState()['password'] ?? null;

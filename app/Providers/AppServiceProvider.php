@@ -28,6 +28,11 @@ class AppServiceProvider extends ServiceProvider
         JsonResource::withoutWrapping();
         Livewire::component('app.filament.pages.custom-login', CustomLogin::class);
 
+        $this->app->bind(
+            \Filament\Http\Responses\Auth\Contracts\LoginResponse::class,
+            \App\Http\Responses\Filament\LoginResponse::class
+        );
+
         ResetPassword::createUrlUsing(function (object $notifiable, string $token) {
             return config('app.frontend_url') . "/password-reset/$token?email={$notifiable->getEmailForPasswordReset()}";
         });

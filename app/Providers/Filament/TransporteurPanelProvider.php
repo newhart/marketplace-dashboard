@@ -33,6 +33,7 @@ class TransporteurPanelProvider extends PanelProvider
                 'secondary' => Color::Gray,
             ])
             ->darkMode(false)
+            ->viteTheme('resources/css/filament/admin/theme.css')
             ->discoverPages(in: app_path('Filament/TransporteurPanel/Pages'), for: 'App\\Filament\\TransporteurPanel\\Pages')
             ->discoverWidgets(in: app_path('Filament/TransporteurPanel/Widgets'), for: 'App\\Filament\\TransporteurPanel\\Widgets')
             ->widgets([
