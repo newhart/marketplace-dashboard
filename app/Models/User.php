@@ -7,11 +7,13 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Filament\Models\Contracts\FilamentUser;
+use Filament\Panel;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
-class User extends Authenticatable implements MustVerifyEmail
+class User extends Authenticatable implements FilamentUser, MustVerifyEmail
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable, HasApiTokens;
@@ -148,6 +150,14 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
+     * Get the transporter price settings (prix au km).
+     */
+    public function transporterPriceSetting(): HasOne
+    {
+        return $this->hasOne(TransporterPriceSetting::class);
+    }
+
+    /**
      * Check if user is a merchant
      */
     public function isMerchant(): bool
@@ -164,5 +174,24 @@ class User extends Authenticatable implements MustVerifyEmail
     public function routeNotificationForFirebase($notification)
     {
         return $this->fcm_token;
+    }
+
+    /**
+     * Détermine si l'utilisateur peut accéder à un panel Filament.
+     * - Admin : rôle 'admin' (super admin)
+     * - Marchant : type 'merchant' ou 'seller', ou rôle 'merchant'
+     * - Transporteur : type 'transporter'
+     */
+    public function canAccessPanel(Panel $panel): bool
+    {
+        $role = $this->role ?? '';
+        $type = $this->type ?? '';
+
+        return match ($panel->getId()) {
+            'admin' => $role === 'admin',
+            'marchantPanel' => in_array($type, [self::TYPE_MERCHANT, self::TYPE_SELLER], true) || $role === 'merchant',
+            'transporteur' => $type === self::TYPE_TRANSPORTER,
+            default => false,
+        };
     }
 }

@@ -6,7 +6,6 @@ use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
-use Filament\Pages;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
@@ -18,35 +17,26 @@ use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 
-class MarchantPanelPanelProvider extends PanelProvider
+class TransporteurPanelProvider extends PanelProvider
 {
     public function panel(Panel $panel): Panel
     {
         return $panel
-            ->id('marchantPanel')
-            ->path('marchantPanel')
+            ->id('transporteur')
+            ->path('transporteur')
             ->login(\App\Filament\Pages\CustomLogin::class)
-            ->brandName('OnaMarketplace')
+            ->brandName('OnaMarketplace - Transporteur')
             ->brandLogo(asset('images/logo.png'))
             ->brandLogoHeight('3rem')
             ->colors([
-                'primary' => Color::hex('#02C6B0'),
-                'secondary' => Color::hex('#fcf3ef'),
-                'tertiary' => Color::hex('#FFE6C7'),
-                'gray' => Color::Gray,
+                'primary' => Color::Blue,
+                'secondary' => Color::Gray,
             ])
             ->darkMode(false)
-            ->viteTheme('resources/css/filament/admin/theme.css')
-            ->discoverResources(in: app_path('Filament/MarchantPanel/Resources'), for: 'App\\Filament\\MarchantPanel\\Resources')
-            ->discoverPages(in: app_path('Filament/MarchantPanel/Pages'), for: 'App\\Filament\\MarchantPanel\\Pages')
-            ->pages([
-                Pages\Dashboard::class,
-            ])
-            ->discoverWidgets(in: app_path('Filament/MarchantPanel/Widgets'), for: 'App\\Filament\\MarchantPanel\\Widgets')
+            ->discoverPages(in: app_path('Filament/TransporteurPanel/Pages'), for: 'App\\Filament\\TransporteurPanel\\Pages')
+            ->discoverWidgets(in: app_path('Filament/TransporteurPanel/Widgets'), for: 'App\\Filament\\TransporteurPanel\\Widgets')
             ->widgets([
                 Widgets\AccountWidget::class,
-                \App\Filament\MarchantPanel\Widgets\MerchantStatsOverview::class,
-                \App\Filament\MarchantPanel\Widgets\MerchantLatestOrders::class,
             ])
             ->middleware([
                 EncryptCookies::class,
