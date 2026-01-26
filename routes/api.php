@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\HealthCheckController;
 use App\Http\Controllers\Api\FCMTokenController;
 use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\TransporterController;
 use App\Http\Controllers\CategoryController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -36,6 +37,11 @@ Route::post('/users/fcm-token', [FCMTokenController::class, 'saveFCMToken']);
 Route::prefix('notifications')->group(function () {
     Route::post('/send', [NotificationController::class, 'send']);
     Route::post('/send-bulk', [NotificationController::class, 'sendBulk']);
+});
+
+// Transporters
+Route::prefix('transporters')->group(function () {
+    Route::get('/available', [TransporterController::class, 'available']);
 });
 
 Route::middleware(['auth:sanctum'])->get('/user', function (Request $request) {
