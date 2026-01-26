@@ -52,17 +52,26 @@ class FirebaseNotificationService
     /**
      * Envoyer une notification push à plusieurs utilisateurs
      *
-     * @param array $users
+     * @param array|\Illuminate\Support\Collection $users
      * @param string $title
      * @param string $body
      * @param array $data
      * @return int Nombre de notifications envoyées avec succès
      */
-    public function sendToUsers(array $users, string $title, string $body, array $data = []): int
+    public function sendToUsers($users, string $title, string $body, array $data = []): int
     {
         $successCount = 0;
         
         foreach ($users as $user) {
+            // S'assurer que $user est un objet User
+            if (!($user instanceof User)) {
+                Log::warning("Élément invalide dans la liste des utilisateurs", [
+                    'type' => gettype($user),
+                    'value' => is_object($user) ? get_class($user) : $user
+                ]);
+                continue;
+            }
+            
             if ($this->sendToUser($user, $title, $body, $data)) {
                 $successCount++;
             }
@@ -86,6 +95,6 @@ class FirebaseNotificationService
             ->whereNotNull('fcm_token')
             ->get();
 
-        return $this->sendToUsers($transporters->toArray(), $title, $body, $data);
+        return $this->sendToUsers($transporters, $title, $body, $data);
     }
 }

@@ -104,7 +104,7 @@ class NotificationController extends Controller
             }
 
             $successCount = $this->firebaseService->sendToUsers(
-                $users->toArray(),
+                $users,
                 $validated['title'],
                 $validated['body'],
                 $validated['data'] ?? []
