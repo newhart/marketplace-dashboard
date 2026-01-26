@@ -65,6 +65,86 @@ class ProductController extends Controller
         ]);
     }
 
+    /**
+     * Get the boutique associated with a product
+     *
+     * @param Product $product
+     * @return JsonResponse
+     */
+    public function getBoutique(Product $product): JsonResponse
+    {
+        try {
+            // Charger les relations nécessaires
+            $product->load('user.merchant.boutiques');
+
+            // Vérifier si le produit a un utilisateur
+            if (!$product->user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Ce produit n\'a pas de vendeur associé.'
+                ], 404);
+            }
+
+            // Vérifier si l'utilisateur est un marchand
+            if (!$product->user->merchant) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Le vendeur de ce produit n\'est pas un marchand.'
+                ], 404);
+            }
+
+            // Récupérer les boutiques du marchand
+            $boutiques = $product->user->merchant->boutiques;
+
+            if ($boutiques->isEmpty()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Aucune boutique trouvée pour ce marchand.'
+                ], 404);
+            }
+
+            // Retourner la première boutique active, ou la première si aucune active
+            $boutique = $boutiques->where('is_active', true)->first() ?? $boutiques->first();
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'id' => $boutique->id,
+                    'name' => $boutique->name,
+                    'description' => $boutique->description,
+                    'category' => $boutique->category,
+                    'photo' => $boutique->photo ? asset('storage/' . $boutique->photo) : null,
+                    'latitude' => $boutique->latitude,
+                    'longitude' => $boutique->longitude,
+                    'city' => $boutique->city,
+                    'postal_code' => $boutique->postal_code,
+                    'postal_box' => $boutique->postal_box,
+                    'opening_hours' => $boutique->opening_hours,
+                    'is_active' => $boutique->is_active,
+                    'merchant' => [
+                        'id' => $product->user->merchant->id,
+                        'business_name' => $product->user->name,
+                        'business_address' => $product->user->merchant->business_address,
+                        'business_city' => $product->user->merchant->business_city,
+                        'business_postal_code' => $product->user->merchant->business_postal_code,
+                    ],
+                ],
+                'meta' => [
+                    'product_id' => $product->id,
+                    'product_name' => $product->name,
+                    'total_boutiques' => $boutiques->count(),
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de la récupération de la boutique',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
     public function store(Request $request): JsonResponse
     {
         $validatedData = $request->validate([

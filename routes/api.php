@@ -15,6 +15,7 @@ Route::prefix('products')->group(function () {
     Route::get('/category/{category}', [ProductController::class, 'getByCategory']);
     Route::get('/suggest', [ProductController::class, 'suggestProduct']);
     Route::get('/{product}/similar', [ProductController::class, 'getSimilarProducts']);
+    Route::get('/{product}/boutique', [ProductController::class, 'getBoutique']);
     Route::get('{product}', [ProductController::class, 'show']);
 });
 
