@@ -30,8 +30,8 @@ class TransporterController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'delivery_address_id' => 'required|exists:addresses,id',
-            'shop_id' => 'nullable|exists:boutiques,id', // Optionnel : ID de la boutique
-            'order_id' => 'nullable|exists:orders,id', // Optionnel : ID de la commande pour obtenir le shop
+            'shop_id' => 'nullable|exists:boutiques,id',
+            'order_id' => 'nullable|exists:orders,id',
         ]);
 
         if ($validator->fails()) {
@@ -45,15 +45,8 @@ class TransporterController extends Controller
         try {
             $deliveryAddress = Address::findOrFail($request->delivery_address_id);
             
-            // Déterminer l'adresse du shop
+            // Déterminer l'adresse du shop (optionnel)
             $shopAddress = $this->getShopAddress($request);
-
-            if (!$shopAddress) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Impossible de déterminer l\'adresse du shop. Veuillez fournir shop_id ou order_id.'
-                ], 400);
-            }
 
             // Récupérer tous les transporteurs actifs
             $transporters = User::where('type', User::TYPE_TRANSPORTER)
@@ -64,11 +57,14 @@ class TransporterController extends Controller
             $availableTransporters = [];
 
             foreach ($transporters as $transporter) {
-                // Calculer la distance du shop au transporteur
-                $distanceFromShop = $this->distanceService->calculateDistance(
-                    $shopAddress,
-                    $transporter
-                );
+                // Calculer la distance du shop au transporteur (si shop disponible)
+                $distanceFromShop = null;
+                if ($shopAddress) {
+                    $distanceFromShop = $this->distanceService->calculateDistance(
+                        $shopAddress,
+                        $transporter
+                    );
+                }
 
                 // Calculer la distance du transporteur à l'adresse de livraison
                 $distanceFromDelivery = $this->distanceService->calculateDistance(
@@ -76,14 +72,15 @@ class TransporterController extends Controller
                     $deliveryAddress
                 );
 
-                // Si les distances ne peuvent pas être calculées, on peut quand même inclure le transporteur
-                // mais avec des valeurs null
-                if ($distanceFromShop === null && $distanceFromDelivery === null) {
-                    // On peut quand même inclure le transporteur mais avec un flag
-                    continue; // Ou on peut l'inclure avec available = false
+                // Si la distance de livraison ne peut pas être calculée, exclure le transporteur
+                if ($distanceFromDelivery === null) {
+                    continue;
                 }
 
-                $totalDistance = ($distanceFromShop ?? 0) + ($distanceFromDelivery ?? 0);
+                // Calculer la distance totale
+                // Si on n'a pas la distance du shop, on utilise seulement la distance de livraison
+                // ou on peut estimer une distance moyenne du shop au transporteur
+                $totalDistance = ($distanceFromShop ?? 0) + $distanceFromDelivery;
 
                 // Calculer le prix
                 $price = $this->calculatePrice($transporter, $totalDistance);
@@ -126,6 +123,11 @@ class TransporterController extends Controller
                         'id' => $deliveryAddress->id,
                         'full_address' => $deliveryAddress->full_address,
                     ],
+                    'shop_address' => $shopAddress ? [
+                        'id' => $shopAddress->id ?? null,
+                        'type' => $shopAddress instanceof \App\Models\Boutique ? 'boutique' : 'address',
+                    ] : null,
+                    'note' => $shopAddress ? null : 'Distance du shop non calculée. Fournissez shop_id ou order_id pour une estimation complète.',
                 ]
             ]);
 
