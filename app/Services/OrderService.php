@@ -30,6 +30,7 @@ class OrderService
             // Create the order
             $order = Order::create([
                 'user_id' => $user->id,
+                'transporter_id' => $orderData['transporter_id'] ?? null,
                 'status' => 'pending',
                 'total_amount' => $orderData['total_amount'],
             ]);

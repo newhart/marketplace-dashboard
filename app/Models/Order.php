@@ -11,11 +11,16 @@ class Order extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['user_id', 'status',  'total_amount'];
+    protected $fillable = ['user_id', 'transporter_id', 'status', 'total_amount'];
 
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function transporter(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'transporter_id');
     }
 
     public function items(): HasMany

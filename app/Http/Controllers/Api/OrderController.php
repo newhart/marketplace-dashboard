@@ -41,6 +41,7 @@ class OrderController extends Controller
             'items.*.product_id' => 'required|exists:products,id',
             'items.*.quantity' => 'required|integer|min:1',
             'total_amount' => 'required|numeric|min:0',
+            'transporter_id' => 'nullable|exists:users,id',
         ]);
 
         if ($validator->fails()) {
@@ -55,8 +56,26 @@ class OrderController extends Controller
                 return response()->json(['error' => 'Utilisateur non authentifié'], 401);
             }
 
+            // Vérifier que transporter_id correspond bien à un transporteur actif
+            if ($request->has('transporter_id') && $request->transporter_id) {
+                $transporter = \App\Models\User::where('id', $request->transporter_id)
+                    ->where('type', \App\Models\User::TYPE_TRANSPORTER)
+                    ->where('is_active', true)
+                    ->first();
+
+                if (!$transporter) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Le transporteur sélectionné n\'existe pas ou n\'est pas actif'
+                    ], 422);
+                }
+            }
+
             // Create the order
             $order = $this->orderService->store($request->all(), $user);
+
+            // Charger le transporteur si présent
+            $order->load('transporter');
 
             return response()->json([
                 'success' => true,
@@ -65,6 +84,13 @@ class OrderController extends Controller
                     'order_id' => $order->id,
                     'status' => $order->status,
                     'total_amount' => $order->total_amount,
+                    'transporter_id' => $order->transporter_id,
+                    'transporter' => $order->transporter ? [
+                        'id' => $order->transporter->id,
+                        'name' => $order->transporter->name,
+                        'company_name' => $order->transporter->company_name,
+                        'phone' => $order->transporter->phone_number ?? $order->transporter->phone ?? null,
+                    ] : null,
                 ]
             ], 201);
         } catch (\Exception $e) {
