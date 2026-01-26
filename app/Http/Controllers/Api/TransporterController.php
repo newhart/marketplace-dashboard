@@ -32,6 +32,7 @@ class TransporterController extends Controller
             'delivery_address_id' => 'required|exists:addresses,id',
             'shop_id' => 'nullable|exists:boutiques,id',
             'order_id' => 'nullable|exists:orders,id',
+            'limit' => 'nullable|integer|min:1|max:50', // Limite optionnelle pour les tests
         ]);
 
         if ($validator->fails()) {
@@ -48,10 +49,14 @@ class TransporterController extends Controller
             // Déterminer l'adresse du shop (optionnel)
             $shopAddress = $this->getShopAddress($request);
 
-            // Récupérer tous les transporteurs actifs
+            // Récupérer les transporteurs actifs
+            // Par défaut, limiter à 5 pour les tests, mais peut être modifié via le paramètre limit
+            $limit = $request->input('limit', 5);
+            
             $transporters = User::where('type', User::TYPE_TRANSPORTER)
                 ->where('is_active', true)
                 ->with('transporterPriceSetting')
+                ->limit($limit)
                 ->get();
 
             $availableTransporters = [];
