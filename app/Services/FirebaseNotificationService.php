@@ -4,12 +4,22 @@ namespace App\Services;
 
 use App\Models\User;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\URL;
 use Kreait\Laravel\Firebase\Facades\Firebase;
 use Kreait\Firebase\Messaging\CloudMessage;
-use Kreait\Firebase\Messaging\Notification as FirebaseNotification;
 
 class FirebaseNotificationService
 {
+    /**
+     * Obtenir l'URL complète du logo
+     *
+     * @return string
+     */
+    protected function getLogoUrl(): string
+    {
+        return URL::asset('images/logo.png');
+    }
+
     /**
      * Envoyer une notification push à un utilisateur
      *
@@ -29,12 +39,45 @@ class FirebaseNotificationService
         try {
             $messaging = Firebase::messaging();
             
-            $notification = FirebaseNotification::create($title, $body);
+            // Obtenir l'URL complète du logo
+            $logoUrl = $this->getLogoUrl();
             
-            $message = CloudMessage::withTarget('token', $user->fcm_token)
-                ->withNotification($notification)
-                ->withData($data);
+            // Ajouter l'image dans les données pour compatibilité avec toutes les plateformes
+            $data['image'] = $logoUrl;
+            $data['image_url'] = $logoUrl;
+            
+            // Construire le message avec CloudMessage::fromArray pour inclure l'image
+            $messageArray = [
+                'token' => $user->fcm_token,
+                'notification' => [
+                    'title' => $title,
+                    'body' => $body,
+                    'image' => $logoUrl,
+                ],
+                'data' => $data,
+                'android' => [
+                    'notification' => [
+                        'image' => $logoUrl,
+                    ],
+                ],
+                'webpush' => [
+                    'notification' => [
+                        'image' => $logoUrl,
+                    ],
+                ],
+                'apns' => [
+                    'payload' => [
+                        'aps' => [
+                            'mutable-content' => 1,
+                        ],
+                    ],
+                    'fcm_options' => [
+                        'image' => $logoUrl,
+                    ],
+                ],
+            ];
 
+            $message = CloudMessage::fromArray($messageArray);
             $messaging->send($message);
             
             Log::info("Notification push envoyée avec succès à l'utilisateur {$user->id}");
