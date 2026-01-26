@@ -6,6 +6,7 @@ use App\Models\Order;
 use App\Services\FirebaseNotificationService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
 class OrderValidatedForTransporterNotification extends Notification implements ShouldQueue
@@ -29,7 +30,7 @@ class OrderValidatedForTransporterNotification extends Notification implements S
      */
     public function via(object $notifiable): array
     {
-        return ['firebase'];
+        return ['firebase', 'mail'];
     }
 
     /**
@@ -52,5 +53,24 @@ class OrderValidatedForTransporterNotification extends Notification implements S
         ];
 
         $firebaseService->sendToUser($notifiable, $title, $body, $data);
+    }
+
+    /**
+     * Get the mail representation of the notification.
+     *
+     * @param object $notifiable
+     * @return \Illuminate\Notifications\Messages\MailMessage
+     */
+    public function toMail(object $notifiable): MailMessage
+    {
+        return (new MailMessage)
+            ->subject('Commande validée - Prête pour la livraison')
+            ->greeting('Bonjour ' . $notifiable->name . '!')
+            ->line('Une commande a été validée et est maintenant prête pour la livraison.')
+            ->line('**Commande #' . $this->order->id . '**')
+            ->line('**Montant total :** ' . $this->order->total_amount . ' F')
+            ->line('**Statut :** ' . ucfirst($this->order->status))
+            ->action('Voir les détails de la commande', url('/transporteur/orders/' . $this->order->id))
+            ->line('Merci d\'utiliser notre plateforme!');
     }
 }

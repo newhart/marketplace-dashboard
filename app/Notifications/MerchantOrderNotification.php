@@ -4,6 +4,7 @@ namespace App\Notifications;
 
 use App\Models\Order;
 use App\Models\Product;
+use App\Services\FirebaseNotificationService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -37,7 +38,38 @@ class MerchantOrderNotification extends Notification implements ShouldQueue
      */
     public function via($notifiable)
     {
-        return ['mail', 'database', 'broadcast'];
+        return ['firebase', 'mail', 'database', 'broadcast'];
+    }
+
+    /**
+     * Send Firebase push notification
+     *
+     * @param object $notifiable
+     * @return void
+     */
+    public function toFirebase(object $notifiable): void
+    {
+        $firebaseService = app(FirebaseNotificationService::class);
+        
+        $orderItem = $this->order->items()->where('product_id', $this->product->id)->first();
+        $quantity = $orderItem ? $orderItem->quantity : 0;
+        $totalPrice = $orderItem ? ($orderItem->price * $orderItem->quantity) : 0;
+        
+        $title = 'Nouvelle commande pour votre produit';
+        $body = "Commande #{$this->order->id} - {$this->product->name} (Quantité: {$quantity}) - Montant: {$totalPrice} F";
+        
+        $data = [
+            'type' => 'merchant_order',
+            'order_id' => (string) $this->order->id,
+            'product_id' => (string) $this->product->id,
+            'product_name' => $this->product->name,
+            'quantity' => (string) $quantity,
+            'total_price' => (string) $totalPrice,
+            'user_id' => (string) $this->order->user_id,
+            'click_action' => 'FLUTTER_NOTIFICATION_CLICK',
+        ];
+
+        $firebaseService->sendToUser($notifiable, $title, $body, $data);
     }
 
     /**
@@ -50,15 +82,16 @@ class MerchantOrderNotification extends Notification implements ShouldQueue
     {
         $orderItem = $this->order->items()->where('product_id', $this->product->id)->first();
         $quantity = $orderItem ? $orderItem->quantity : 0;
+        $totalPrice = $orderItem ? ($orderItem->price * $orderItem->quantity) : 0;
 
         return (new MailMessage)
             ->subject('Nouvelle commande pour votre produit')
             ->greeting('Bonjour ' . $notifiable->name . '!')
-            ->line('Un client a commandu00e9 l\'un de vos produits.')
+            ->line('Un client a commandé l\'un de vos produits.')
             ->line('Produit: ' . $this->product->name)
-            ->line('Quantitu00e9: ' . $quantity)
-            ->line('Commande #' . $this->order->id . ' pour un montant total de ' . $orderItem->total_price . ' F.')
-            ->action('Voir les du00e9tails', url('/merchant/orders/' . $this->order->id))
+            ->line('Quantité: ' . $quantity)
+            ->line('Commande #' . $this->order->id . ' pour un montant total de ' . $totalPrice . ' F.')
+            ->action('Voir les détails', url('/merchant/orders/' . $this->order->id))
             ->line('Merci d\'utiliser notre plateforme!');
     }
 
@@ -71,13 +104,14 @@ class MerchantOrderNotification extends Notification implements ShouldQueue
     public function toBroadcast($notifiable)
     {
         $orderItem = $this->order->items()->where('product_id', $this->product->id)->first();
+        $totalPrice = $orderItem ? ($orderItem->price * $orderItem->quantity) : 0;
 
         return [
             'order_id' => $this->order->id,
             'product_id' => $this->product->id,
             'product_name' => $this->product->name,
             'quantity' => $orderItem ? $orderItem->quantity : 0,
-            'total_price' => $orderItem ? $orderItem->total_price : 0,
+            'total_price' => $totalPrice,
             'user_id' => $this->order->user_id,
             'user_name' => $this->order->user->name,
             'message' => 'Nouvelle commande pour votre produit ' . $this->product->name,
@@ -94,13 +128,14 @@ class MerchantOrderNotification extends Notification implements ShouldQueue
     public function toArray($notifiable)
     {
         $orderItem = $this->order->items()->where('product_id', $this->product->id)->first();
+        $totalPrice = $orderItem ? ($orderItem->price * $orderItem->quantity) : 0;
 
         return [
             'order_id' => $this->order->id,
             'product_id' => $this->product->id,
             'product_name' => $this->product->name,
             'quantity' => $orderItem ? $orderItem->quantity : 0,
-            'total_price' => $orderItem ? $orderItem->total_price : 0,
+            'total_price' => $totalPrice,
             'user_id' => $this->order->user_id,
             'user_name' => $this->order->user->name,
             'message' => 'Nouvelle commande pour votre produit ' . $this->product->name,

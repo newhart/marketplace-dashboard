@@ -260,8 +260,8 @@ class OrderService
      */
     public function checkAndUpdateOrderStatus(Order $order)
     {
-        // Recharger la commande avec tous ses items
-        $order->load('items');
+        // Recharger la commande avec tous ses items et le transporteur
+        $order->load(['items', 'transporter']);
 
         // Vérifier si tous les items sont validés
         $allItemsValidated = $order->items->every(function ($item) {
@@ -270,20 +270,24 @@ class OrderService
 
         // Si tous les items sont validés et que la commande est encore en "pending"
         if ($allItemsValidated && $order->status === 'pending') {
+            $oldStatus = $order->status;
             $order->status = 'validated';
             $order->save();
 
-            // Envoyer une notification au client
-            $order->user->notify(new OrderValidatedNotification($order));
+            // Vérifier que le statut a bien changé en "validated"
+            if ($order->status === 'validated' && $oldStatus === 'pending') {
+                // Envoyer une notification au client
+                $order->user->notify(new OrderValidatedNotification($order));
 
-            // Envoyer une notification push à tous les transporteurs actifs
-            $transporters = User::where('type', User::TYPE_TRANSPORTER)
-                ->where('is_active', true)
-                ->whereNotNull('fcm_token')
-                ->get();
-
-            foreach ($transporters as $transporter) {
-                $transporter->notify(new OrderValidatedForTransporterNotification($order));
+                // Envoyer une notification push et email au transporteur assigné (si présent)
+                if ($order->transporter_id && $order->transporter) {
+                    $transporter = $order->transporter;
+                    
+                    // Vérifier que le transporteur est actif avant d'envoyer la notification
+                    if ($transporter->is_active) {
+                        $transporter->notify(new OrderValidatedForTransporterNotification($order));
+                    }
+                }
             }
         }
     }
