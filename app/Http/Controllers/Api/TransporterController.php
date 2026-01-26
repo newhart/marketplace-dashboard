@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Services\DistanceService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 
 class TransporterController extends Controller
@@ -77,21 +78,27 @@ class TransporterController extends Controller
                     $deliveryAddress
                 );
 
-                // Si la distance de livraison ne peut pas être calculée, exclure le transporteur
+                // Si la distance ne peut pas être calculée, on inclut quand même le transporteur
+                // mais avec des valeurs null et un prix par défaut
                 if ($distanceFromDelivery === null) {
-                    continue;
+                    Log::warning("Impossible de calculer la distance pour le transporteur", [
+                        'transporter_id' => $transporter->id,
+                        'transporter_name' => $transporter->name,
+                        'delivery_address_id' => $deliveryAddress->id,
+                    ]);
                 }
 
                 // Calculer la distance totale
-                // Si on n'a pas la distance du shop, on utilise seulement la distance de livraison
-                // ou on peut estimer une distance moyenne du shop au transporteur
-                $totalDistance = ($distanceFromShop ?? 0) + $distanceFromDelivery;
+                // Si on n'a pas la distance, on utilise 0 pour permettre quand même l'affichage
+                $totalDistance = ($distanceFromShop ?? 0) + ($distanceFromDelivery ?? 0);
 
-                // Calculer le prix
-                $price = $this->calculatePrice($transporter, $totalDistance);
+                // Calculer le prix (utiliser le minimum si distance = 0)
+                $price = $totalDistance > 0 
+                    ? $this->calculatePrice($transporter, $totalDistance)
+                    : $this->getMinimumPrice($transporter);
 
                 // Estimer le temps (en minutes) - environ 2 minutes par km en ville
-                $estimatedTime = $this->estimateTime($totalDistance);
+                $estimatedTime = $totalDistance > 0 ? $this->estimateTime($totalDistance) : null;
 
                 // Déterminer si le transporteur est disponible
                 $available = $this->isTransporterAvailable($transporter);
@@ -105,10 +112,10 @@ class TransporterController extends Controller
                     'vehicle_type' => $transporter->vehicle_type,
                     'distance_from_shop' => $distanceFromShop,
                     'distance_from_delivery' => $distanceFromDelivery,
-                    'total_distance' => $totalDistance,
+                    'total_distance' => $totalDistance > 0 ? $totalDistance : null,
                     'price' => $price,
-                    'estimated_time' => $estimatedTime, // en minutes
-                    'estimated_time_formatted' => $this->formatTime($estimatedTime),
+                    'estimated_time' => $estimatedTime,
+                    'estimated_time_formatted' => $estimatedTime ? $this->formatTime($estimatedTime) : 'Non disponible',
                     'available' => $available,
                     'rating' => $this->getTransporterRating($transporter),
                 ];
@@ -202,6 +209,23 @@ class TransporterController extends Controller
         $calculatedPrice = $totalDistance * $pricePerKm;
 
         return max($calculatedPrice, $minimumAmount);
+    }
+
+    /**
+     * Obtenir le prix minimum pour un transporteur
+     *
+     * @param User $transporter
+     * @return float
+     */
+    protected function getMinimumPrice(User $transporter): float
+    {
+        $priceSetting = $transporter->transporterPriceSetting;
+
+        if (!$priceSetting) {
+            return 2000; // 2000 F minimum par défaut
+        }
+
+        return $priceSetting->minimum_amount ?? 2000;
     }
 
     /**
