@@ -4,11 +4,14 @@ namespace App\Notifications;
 
 use App\Models\Order;
 use App\Models\User;
+use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
-class OrderCancelledNotification extends Notification
+class OrderCancelledNotification extends Notification implements ShouldQueue
 {
+    use Queueable;
 
     protected $order;
     protected $merchant;
