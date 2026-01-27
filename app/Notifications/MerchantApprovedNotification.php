@@ -3,13 +3,11 @@
 namespace App\Notifications;
 
 use App\Models\Merchant;
-use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
 class MerchantApprovedNotification extends Notification
 {
-    use Queueable;
 
     protected $merchant;
 

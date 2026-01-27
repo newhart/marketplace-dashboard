@@ -5,13 +5,11 @@ namespace App\Notifications;
 use App\Models\Order;
 use App\Models\Product;
 use App\Services\FirebaseNotificationService;
-use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
 class MerchantOrderNotification extends Notification
 {
-    use Queueable;
 
     protected $order;
     protected $product;

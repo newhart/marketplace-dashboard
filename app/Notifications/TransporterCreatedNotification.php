@@ -4,13 +4,11 @@ namespace App\Notifications;
 
 use App\Models\User;
 use Filament\Facades\Filament;
-use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
 class TransporterCreatedNotification extends Notification
 {
-    use Queueable;
 
     protected User $user;
     protected string $password;

@@ -2,7 +2,6 @@
 
 namespace App\Notifications;
 
-use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 use Illuminate\Support\Carbon;
@@ -11,7 +10,6 @@ use Illuminate\Support\Facades\URL;
 
 class CustomerVerifyEmailNotification extends Notification
 {
-    use Queueable;
 
     /**
      * Create a new notification instance.
