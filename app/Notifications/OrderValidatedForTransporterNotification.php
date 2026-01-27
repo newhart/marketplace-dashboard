@@ -5,11 +5,10 @@ namespace App\Notifications;
 use App\Models\Order;
 use App\Services\FirebaseNotificationService;
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
-class OrderValidatedForTransporterNotification extends Notification implements ShouldQueue
+class OrderValidatedForTransporterNotification extends Notification
 {
     use Queueable;
 

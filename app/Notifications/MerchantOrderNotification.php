@@ -6,11 +6,10 @@ use App\Models\Order;
 use App\Models\Product;
 use App\Services\FirebaseNotificationService;
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
-class MerchantOrderNotification extends Notification implements ShouldQueue
+class MerchantOrderNotification extends Notification
 {
     use Queueable;
 

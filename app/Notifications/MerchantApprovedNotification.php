@@ -4,11 +4,10 @@ namespace App\Notifications;
 
 use App\Models\Merchant;
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
-class MerchantApprovedNotification extends Notification implements ShouldQueue
+class MerchantApprovedNotification extends Notification
 {
     use Queueable;
 
