@@ -54,3 +54,7 @@ require __DIR__ . '/merchant.php';
 require __DIR__ . '/customer.php';
 require __DIR__ . '/order.php';
 require __DIR__ . '/address.php';
+require __DIR__ . '/transporter.php';
+
+// Module Carrier (préfixe /api/carrier) – pas d'inscription, comptes créés par l'admin
+Route::prefix('carrier')->group(base_path('routes/carrier.php'));

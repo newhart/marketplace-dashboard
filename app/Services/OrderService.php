@@ -272,6 +272,8 @@ class OrderService
         if ($allItemsValidated && $order->status === 'pending') {
             $oldStatus = $order->status;
             $order->status = 'validated';
+            // Générer un code de livraison pour que le client puisse le remettre au transporteur
+            $order->delivery_code = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
             $order->save();
 
             // Vérifier que le statut a bien changé en "validated"
