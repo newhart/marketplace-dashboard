@@ -12,7 +12,6 @@ class ProductService
 {
     public function show(Product $product, Request $request = null): array
     {
-        // Charger les relations nécessaires avec limite de 5 images maximum
         $product->load([
             'category',
             'images' => function ($query) {
@@ -21,11 +20,9 @@ class ProductService
             'reviews'
         ]);
 
-        // Déterminer le type de produits similaires à inclure
-        $similarType = $request?->get('similar_type', 'category'); // category, related, price
-        $similarLimit = min($request?->get('similar_limit', 6), 12); // Maximum 12 produits
+        $similarType = $request?->get('similar_type', 'category'); 
+        $similarLimit = min($request?->get('similar_limit', 6), 12); 
 
-        // Récupérer les produits similaires selon le type demandé
         $similarProducts = match ($similarType) {
             'related' => $product->getRelatedProducts($similarLimit),
             'price' => $product->getRecommendedByPriceRange($similarLimit),
@@ -69,37 +66,47 @@ class ProductService
 
         return new ProductCollection($products);
     }
+    /**
+     * Recherche de produits avec score de pertinence.
+     * Champs recherchés : name, short_description, description, nom de catégorie.
+     * Ordre : nom exact > nom commence par > nom contient > catégorie > description, puis par date.
+     */
     public function searchProduct(Request $request): ProductCollection
     {
-        $keyword = $request->keyWord;
+        $keyword = $request->input('keyWord', $request->input('keyword', ''));
+        $keyword = trim(preg_replace('/\s+/', ' ', (string) $keyword));
+
+        if ($keyword === '') {
+            $products = Product::with(['category', 'images'])->latest()->paginate(10);
+            return new ProductCollection($products);
+        }
+
+        $term = '%' . $keyword . '%';
+        $termStart = $keyword . '%';
 
         $products = Product::query()
-            ->where(function ($q) use ($keyword) {
-                $q->where('name', 'like', "%{$keyword}%")
-                    ->orWhereHas('category', function ($query) use ($keyword) {
-                        $query->where('name', 'like', "%{$keyword}%");
+            ->where(function ($q) use ($term, $termStart) {
+                $q->where('name', 'like', $term)
+                    ->orWhere('short_description', 'like', $term)
+                    ->orWhere('description', 'like', $term)
+                    ->orWhereHas('category', function ($query) use ($term) {
+                        $query->where('name', 'like', $term);
                     });
             })
             ->with(['category', 'images'])
-            // 1. Prioriser les catégories qui matchent
             ->orderByRaw("
-            CASE 
-                WHEN EXISTS (
-                    SELECT 1 FROM categories 
-                    WHERE categories.id = products.category_id 
-                    AND categories.name LIKE ?
-                ) THEN 0
-                ELSE 1
-            END
-        ", ["%{$keyword}%"])
-            // 2. Ensuite prioriser le nom du produit qui match
-            ->orderByRaw("
-            CASE 
-                WHEN products.name LIKE ? THEN 0
-                ELSE 1
-            END
-        ", ["%{$keyword}%"])
-            // 3. Enfin trier par date de création
+                CASE
+                    WHEN products.name = ? THEN 0
+                    WHEN products.name LIKE ? THEN 1
+                    WHEN products.name LIKE ? THEN 2
+                    WHEN EXISTS (
+                        SELECT 1 FROM categories
+                        WHERE categories.id = products.category_id AND categories.name LIKE ?
+                    ) THEN 3
+                    WHEN products.short_description LIKE ? OR products.description LIKE ? THEN 4
+                    ELSE 5
+                END
+            ", [$keyword, $termStart, $term, $term, $term, $term])
             ->latest()
             ->paginate(10);
 
