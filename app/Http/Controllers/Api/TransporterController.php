@@ -7,6 +7,7 @@ use App\Models\Address;
 use App\Models\Order;
 use App\Models\User;
 use App\Services\DistanceService;
+use App\Services\OrderService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -494,6 +495,8 @@ class TransporterController extends Controller
         $order->status = 'delivered';
         $order->save();
 
+        app(OrderService::class)->notifyMerchantsOfDeliveryCompletion($order);
+
         return response()->json([
             'success' => true,
             'message' => 'Livraison validée avec succès.',
@@ -859,6 +862,11 @@ class TransporterController extends Controller
         }
         $order->status = $newStatus;
         $order->save();
+
+        if ($newStatus === 'delivered') {
+            app(OrderService::class)->notifyMerchantsOfDeliveryCompletion($order);
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Statut mis à jour.',

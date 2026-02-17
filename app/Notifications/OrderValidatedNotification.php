@@ -44,12 +44,21 @@ class OrderValidatedNotification extends Notification implements ShouldQueue
      */
     public function toMail($notifiable)
     {
-        return (new MailMessage)
+        $code = $this->order->delivery_code ?? '';
+
+        $mail = (new MailMessage)
             ->subject('Votre commande a été validée')
             ->greeting('Bonjour ' . $notifiable->name . '!')
             ->line('Nous avons le plaisir de vous informer que tous les commerçants ont validé votre commande.')
             ->line('Commande #' . $this->order->id . ' pour un montant total de ' . $this->order->total_amount . ' F.')
-            ->line('Votre commande est maintenant en cours de préparation et sera expédiée sous peu.')
+            ->line('Votre commande est maintenant en cours de préparation et sera expédiée sous peu.');
+
+        if ($code !== '') {
+            $mail->line('Votre code de livraison : ' . $code)
+                ->line('Remettez ce code au transporteur au moment de la livraison pour confirmer la réception.');
+        }
+
+        return $mail
             ->action('Voir ma commande', url('/customer/orders/' . $this->order->id))
             ->line('Merci de votre confiance!');
     }
@@ -67,6 +76,7 @@ class OrderValidatedNotification extends Notification implements ShouldQueue
             'user_id' => $this->order->user_id,
             'total_amount' => $this->order->total_amount,
             'status' => $this->order->status,
+            'delivery_code' => $this->order->delivery_code,
             'message' => 'Votre commande #' . $this->order->id . ' a été validée par tous les commerçants',
         ];
     }

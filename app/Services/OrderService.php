@@ -12,6 +12,7 @@ use App\Notifications\MerchantOrderNotification;
 use App\Notifications\OrderCancelledNotification;
 use App\Notifications\OrderValidatedNotification;
 use App\Notifications\OrderValidatedForTransporterNotification;
+use App\Notifications\OrderDeliveredNotification;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 
@@ -291,6 +292,27 @@ class OrderService
                     }
                 }
             }
+        }
+    }
+
+    /**
+     * Notifier tous les commerçants concernés par la commande que la livraison a été effectuée.
+     * À appeler lorsque le transporteur valide la livraison avec le code client.
+     *
+     * @param Order $order Commande dont le statut vient d'être passé à "delivered"
+     */
+    public function notifyMerchantsOfDeliveryCompletion(Order $order): void
+    {
+        $order->load(['items.product.user']);
+
+        $itemsByMerchant = $order->items->groupBy(fn (OrderItem $item) => $item->product?->user_id ?? 0);
+
+        foreach ($itemsByMerchant as $merchantUserId => $items) {
+            if ((int) $merchantUserId === 0) {
+                continue;
+            }
+            $merchantUser = $items->first()->product->user;
+            $merchantUser->notify(new OrderDeliveredNotification($order, $items->values()));
         }
     }
 }
