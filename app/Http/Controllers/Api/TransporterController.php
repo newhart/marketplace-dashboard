@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Address;
 use App\Models\Order;
 use App\Models\User;
+use App\Notifications\OrderInDeliveryNotification;
 use App\Services\DistanceService;
 use App\Services\OrderService;
 use Illuminate\Http\JsonResponse;
@@ -850,7 +851,7 @@ class TransporterController extends Controller
         if ($err = $this->ensureTransporter()) {
             return $err;
         }
-        $order = Order::where('status', 'validated')->find($id);
+        $order = Order::where('status', 'validated')->with('user')->find($id);
         if (!$order) {
             return response()->json([
                 'success' => false,
@@ -864,7 +865,13 @@ class TransporterController extends Controller
             ], 422);
         }
         $order->transporter_id = Auth::id();
+        $order->status = 'picked_up'; // En cours de livraison
         $order->save();
+
+        if ($order->user) {
+            $order->user->notify(new OrderInDeliveryNotification($order));
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Course acceptée.',
