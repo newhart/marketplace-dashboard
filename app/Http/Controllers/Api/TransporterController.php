@@ -493,6 +493,7 @@ class TransporterController extends Controller
         }
 
         $order->status = 'delivered';
+        $order->delivered_at = $order->delivered_at ?? now();
         $order->save();
 
         app(OrderService::class)->notifyMerchantsOfDeliveryCompletion($order);
@@ -906,11 +907,11 @@ class TransporterController extends Controller
             }
         }
         $order->status = $newStatus;
-        $order->save();
-
         if ($newStatus === 'delivered') {
+            $order->delivered_at = $order->delivered_at ?? now();
             app(OrderService::class)->notifyMerchantsOfDeliveryCompletion($order);
         }
+        $order->save();
 
         return response()->json([
             'success' => true,
@@ -926,23 +927,30 @@ class TransporterController extends Controller
             return $err;
         }
         $userId = Auth::id();
-        $now = Carbon::now();
+        $tz = config('app.timezone', 'UTC');
+        $now = Carbon::now($tz);
         $startOfDay = $now->copy()->startOfDay();
-        $startOfWeek = $now->copy()->startOfWeek();
+        $startOfWeek = $now->copy()->startOfWeek(); // Lundi
         $startOfMonth = $now->copy()->startOfMonth();
 
-        $base = Order::where('transporter_id', $userId);
+        $base = Order::where('transporter_id', $userId)->where('status', 'delivered');
 
-        $ordersToday = (clone $base)->where('status', 'delivered')->where('updated_at', '>=', $startOfDay)->count();
-        $ordersWeek = (clone $base)->where('status', 'delivered')->where('updated_at', '>=', $startOfWeek)->count();
-        $ordersMonth = (clone $base)->where('status', 'delivered')->where('updated_at', '>=', $startOfMonth)->count();
-        $pendingOrders = (clone $base)->whereIn('status', ['validated', 'picked_up', 'in_transit'])->count();
+        $ordersToday = (clone $base)->whereRaw('COALESCE(delivered_at, updated_at) >= ?', [$startOfDay])->count();
+        $ordersWeek = (clone $base)->whereRaw('COALESCE(delivered_at, updated_at) >= ?', [$startOfWeek])->count();
+        $ordersMonth = (clone $base)->whereRaw('COALESCE(delivered_at, updated_at) >= ?', [$startOfMonth])->count();
 
-        $earningsToday = (clone $base)->where('status', 'delivered')->where('updated_at', '>=', $startOfDay)->sum('delivery_fee');
-        $earningsWeek = (clone $base)->where('status', 'delivered')->where('updated_at', '>=', $startOfWeek)->sum('delivery_fee');
-        $earningsMonth = (clone $base)->where('status', 'delivered')->where('updated_at', '>=', $startOfMonth)->sum('delivery_fee');
+        $pendingOrders = Order::where('transporter_id', $userId)
+            ->whereIn('status', ['validated', 'picked_up', 'in_transit'])
+            ->count();
 
-        $totalDeliveries = (clone $base)->where('status', 'delivered')->count();
+        $earningsToday = Order::where('transporter_id', $userId)->where('status', 'delivered')
+            ->whereRaw('COALESCE(delivered_at, updated_at) >= ?', [$startOfDay])->sum('delivery_fee');
+        $earningsWeek = Order::where('transporter_id', $userId)->where('status', 'delivered')
+            ->whereRaw('COALESCE(delivered_at, updated_at) >= ?', [$startOfWeek])->sum('delivery_fee');
+        $earningsMonth = Order::where('transporter_id', $userId)->where('status', 'delivered')
+            ->whereRaw('COALESCE(delivered_at, updated_at) >= ?', [$startOfMonth])->sum('delivery_fee');
+
+        $totalDeliveries = Order::where('transporter_id', $userId)->where('status', 'delivered')->count();
         $rating = $this->getTransporterRating(Auth::user()) ?? 0;
 
         return response()->json([
