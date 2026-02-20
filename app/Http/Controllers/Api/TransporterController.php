@@ -757,6 +757,56 @@ class TransporterController extends Controller
         ];
     }
 
+    /**
+     * Formater une ligne de détail commande : id unique (key React), nom produit, image URL.
+     */
+    protected function carrierFormatOrderDetailItem(\App\Models\OrderItem $orderItem): array
+    {
+        $product = $orderItem->product;
+        $imageUrl = $this->carrierProductImageUrl($product);
+
+        return [
+            'id' => $orderItem->id,
+            'product_id' => $orderItem->product_id,
+            'product_name' => $product?->name,
+            'name' => $product?->name,
+            'quantity' => $orderItem->quantity,
+            'price' => (float) $orderItem->price,
+            'image' => $imageUrl,
+            'image_url' => $imageUrl,
+            'product' => $product ? [
+                'id' => $product->id,
+                'name' => $product->name,
+                'image' => $imageUrl,
+                'path' => $product->image ?? null,
+                'images' => $product->relationLoaded('images') && $product->images->isNotEmpty()
+                    ? $product->images->take(1)->map(fn ($img) => [
+                        'path' => $img->path ? url('storage/' . $img->path) : null,
+                        'url' => $img->path ? url('storage/' . $img->path) : null,
+                    ])->values()->all()
+                    : [],
+            ] : null,
+        ];
+    }
+
+    /**
+     * URL publique de la première image du produit (ou colonne image).
+     */
+    protected function carrierProductImageUrl(?\App\Models\Product $product): ?string
+    {
+        if (!$product) {
+            return null;
+        }
+        if ($product->relationLoaded('images') && $product->images->isNotEmpty()) {
+            $path = $product->images->sortByDesc('is_main')->first()?->path ?? $product->images->first()?->path;
+            return $path ? url('storage/' . $path) : null;
+        }
+        if (!empty($product->image)) {
+            return url('storage/' . $product->image);
+        }
+        return null;
+    }
+
     /** GET carrier/orders/:id – Détail commande. */
     public function carrierOrderDetail(int $id): JsonResponse
     {
@@ -764,7 +814,7 @@ class TransporterController extends Controller
             return $err;
         }
         $order = Order::where('transporter_id', Auth::id())
-            ->with(['user', 'items.product.user.merchant.boutiques'])
+            ->with(['user', 'items.product.user.merchant.boutiques', 'items.product.images'])
             ->find($id);
         if (!$order) {
             return response()->json([
@@ -786,12 +836,7 @@ class TransporterController extends Controller
             'country' => $addr->country,
             'phone' => $addr->phone,
         ] : $item['delivery_address'];
-        $item['items'] = $order->items->map(fn ($i) => [
-            'product_id' => $i->product_id,
-            'product_name' => $i->product?->name,
-            'quantity' => $i->quantity,
-            'price' => (float) $i->price,
-        ]);
+        $item['items'] = $order->items->map(fn ($i) => $this->carrierFormatOrderDetailItem($i));
         return response()->json([
             'success' => true,
             'data' => $item,
