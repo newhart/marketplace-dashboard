@@ -8,7 +8,6 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\User;
 use App\Notifications\OrderInDeliveryNotification;
-use App\Notifications\OrderInPreparationNotification;
 use App\Services\DistanceService;
 use App\Services\OrderService;
 use Illuminate\Http\JsonResponse;
@@ -896,17 +895,8 @@ class TransporterController extends Controller
 
         $order->load('items');
         $allValidated = $order->items->every(fn (OrderItem $item) => $item->isTransporterValidated());
-
-        if ($allValidated) {
-            $order->status = 'picked_up';
-            $order->save();
-            if ($order->user) {
-                $order->user->notify(new OrderInPreparationNotification($order));
-            }
-        } else {
-            $order->status = 'in_transit';
-            $order->save();
-        }
+        $order->status = 'in_transit';
+        $order->save();
 
         return response()->json([
             'success' => true,
@@ -920,39 +910,58 @@ class TransporterController extends Controller
         ]);
     }
 
-    /** POST carrier/orders/:id/accept – Accepter une course (optionnel). */
-    public function carrierAcceptOrder(int $id): JsonResponse
-    {
-        if ($err = $this->ensureTransporter()) {
-            return $err;
-        }
-        $order = Order::where('status', 'validated')->with('user')->find($id);
-        if (!$order) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Commande non trouvée ou non disponible.',
-            ], 404);
-        }
-        if ($order->transporter_id !== null && $order->transporter_id !== Auth::id()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Cette commande est déjà assignée.',
-            ], 422);
-        }
-        $order->transporter_id = Auth::id();
-        $order->status = 'picked_up'; // En cours de livraison
-        $order->save();
+    /**
+     * POST carrier/orders/:id/accept – Accepter la course (tous les articles doivent être collectés).
+     * Retourne un code unique à donner au client oralement ; quand le client (ou le transporteur) entre
+     * ce code pour valider la livraison, la commande passe en "delivered".
+     */
+        public function carrierAcceptOrder(int $id): JsonResponse
+        {
+            if ($err = $this->ensureTransporter()) {
+                return $err;
+            }
+            $order = Order::whereIn('status', ['validated', 'in_transit'])->with(['user', 'items'])->find($id);
+            if (!$order) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Commande non trouvée ou non disponible.',
+                ], 404);
+            }
+            if ($order->transporter_id !== null && $order->transporter_id !== Auth::id()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cette commande est déjà assignée.',
+                ], 422);
+            }
 
-        if ($order->user) {
-            $order->user->notify(new OrderInDeliveryNotification($order));
-        }
+            $allCollected = $order->items->isNotEmpty() && $order->items->every(fn (OrderItem $item) => $item->isTransporterValidated());
+            if (!$allCollected) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Vous devez d\'abord collecter (valider) tous les articles de la commande avant de l\'accepter.',
+                ], 422);
+            }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Course acceptée.',
-            'data' => $this->carrierFormatOrderItem($order->load(['user', 'items.product.user.merchant.boutiques'])),
-        ]);
-    }
+            if (empty($order->delivery_code)) {
+                $order->delivery_code = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+            }
+            $order->transporter_id = Auth::id();
+            $order->status = 'picked_up';
+            $order->save();
+
+            if ($order->user) {
+                $order->user->notify(new OrderInDeliveryNotification($order));
+            }
+
+            $data = $this->carrierFormatOrderItem($order->load(['user', 'items.product.user.merchant.boutiques']));
+            $data['delivery_code'] = $order->delivery_code;
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Course acceptée. Communiquez ce code au client pour confirmer la livraison.',
+                'data' => $data,
+            ]);
+        }
 
     /** POST carrier/orders/:id/status – Corps: { "status": "picked_up" | "in_transit" | "delivered" | "cancelled" }. */
     public function carrierOrderStatus(Request $request, int $id): JsonResponse
