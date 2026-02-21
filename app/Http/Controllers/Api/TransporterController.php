@@ -5,8 +5,10 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Address;
 use App\Models\Order;
+use App\Models\OrderItem;
 use App\Models\User;
 use App\Notifications\OrderInDeliveryNotification;
+use App\Notifications\OrderInPreparationNotification;
 use App\Services\DistanceService;
 use App\Services\OrderService;
 use Illuminate\Http\JsonResponse;
@@ -842,6 +844,75 @@ class TransporterController extends Controller
         return response()->json([
             'success' => true,
             'data' => $item,
+        ]);
+    }
+
+    /**
+     * POST carrier/orders/:id/items/:itemId/validate – Valider un item (pris en charge par le transporteur).
+     * Si tous les items sont validés, la commande passe en "en cours de livraison" et le client est notifié (email + push).
+     */
+    public function carrierValidateOrderItem(int $id, int $itemId): JsonResponse
+    {
+        if ($err = $this->ensureTransporter()) {
+            return $err;
+        }
+
+        $order = Order::where('transporter_id', Auth::id())
+            ->with(['items', 'user'])
+            ->find($id);
+
+        if (!$order) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Commande non trouvée.',
+            ], 404);
+        }
+
+        $orderItem = $order->items->firstWhere('id', $itemId);
+        if (!$orderItem) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Ligne de commande non trouvée ou n\'appartient pas à cette commande.',
+            ], 404);
+        }
+
+        if ($orderItem->isTransporterValidated()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Article déjà validé.',
+                'data' => [
+                    'order_id' => $order->id,
+                    'item_id' => $orderItem->id,
+                    'all_items_validated' => $order->items->every(fn (OrderItem $item) => $item->isTransporterValidated()),
+                    'order_status' => $order->status,
+                ],
+            ]);
+        }
+
+        $orderItem->transporter_validated_at = now();
+        $orderItem->save();
+
+        $order->load('items');
+        $allValidated = $order->items->every(fn (OrderItem $item) => $item->isTransporterValidated());
+
+        if ($allValidated) {
+            $order->status = 'picked_up';
+            $order->save();
+
+            if ($order->user) {
+                $order->user->notify(new OrderInPreparationNotification($order));
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => $allValidated ? 'Tous les articles sont validés. La commande est en cours de livraison et le client a été notifié.' : 'Article validé.',
+            'data' => [
+                'order_id' => $order->id,
+                'item_id' => $orderItem->id,
+                'all_items_validated' => $allValidated,
+                'order_status' => $order->fresh()->status,
+            ],
         ]);
     }
 

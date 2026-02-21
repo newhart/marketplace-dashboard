@@ -16,5 +16,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/orders', [TransporterController::class, 'carrierOrders']);
     Route::get('/orders/{id}', [TransporterController::class, 'carrierOrderDetail']);
     Route::post('/orders/{id}/accept', [TransporterController::class, 'carrierAcceptOrder']);
+    Route::post('/orders/{id}/items/{itemId}/validate', [TransporterController::class, 'carrierValidateOrderItem']);
     Route::post('/orders/{id}/status', [TransporterController::class, 'carrierOrderStatus']);
 });

@@ -11,6 +11,7 @@ class OrderItem extends Model
 
     protected $casts = [
         'validated_at' => 'datetime',
+        'transporter_validated_at' => 'datetime',
     ];
 
     public function order() : BelongsTo
@@ -24,10 +25,18 @@ class OrderItem extends Model
     }
 
     /**
-     * Vérifier si l'item est validé
+     * Vérifier si l'item est validé par le commerçant
      */
     public function isValidated(): bool
     {
         return $this->validated_at !== null;
+    }
+
+    /**
+     * Vérifier si l'item a été validé (pris en charge) par le transporteur
+     */
+    public function isTransporterValidated(): bool
+    {
+        return $this->transporter_validated_at !== null;
     }
 }

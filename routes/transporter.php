@@ -8,6 +8,7 @@ Route::middleware('auth:sanctum')->prefix('transporter')->group(function () {
     Route::get('/orders', [TransporterController::class, 'ordersToDeliver']);
     Route::get('/orders/{id}', [TransporterController::class, 'orderDetail']);
     Route::post('/orders/{id}/validate-delivery', [TransporterController::class, 'validateDelivery']);
+    Route::post('/orders/{id}/items/{itemId}/validate', [TransporterController::class, 'carrierValidateOrderItem']);
 
     // Profil transporteur
     Route::get('/profile', [TransporterController::class, 'profile']);
