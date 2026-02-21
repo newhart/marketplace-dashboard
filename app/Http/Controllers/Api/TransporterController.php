@@ -776,6 +776,8 @@ class TransporterController extends Controller
             'name' => $product?->name,
             'quantity' => $orderItem->quantity,
             'price' => (float) $orderItem->price,
+            'status' => $orderItem->isTransporterValidated() ? 'validated' : 'pending',
+            'validated' => $orderItem->isTransporterValidated(),
             'image' => $imageUrl,
             'image_url' => $imageUrl,
             'product' => $product ? [
@@ -898,15 +900,17 @@ class TransporterController extends Controller
         if ($allValidated) {
             $order->status = 'picked_up';
             $order->save();
-
             if ($order->user) {
                 $order->user->notify(new OrderInPreparationNotification($order));
             }
+        } else {
+            $order->status = 'in_transit';
+            $order->save();
         }
 
         return response()->json([
             'success' => true,
-            'message' => $allValidated ? 'Tous les articles sont validés. La commande est en cours de livraison et le client a été notifié.' : 'Article validé.',
+            'message' => $allValidated ? 'Tous les articles sont validés. La commande est en cours de livraison et le client a été notifié.' : 'Article validé. Statut de la commande mis à jour.',
             'data' => [
                 'order_id' => $order->id,
                 'item_id' => $orderItem->id,
