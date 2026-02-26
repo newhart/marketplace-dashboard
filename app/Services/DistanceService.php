@@ -106,27 +106,35 @@ class DistanceService
     }
 
     /**
-     * Obtenir les coordonnées d'un transporteur (depuis son adresse)
+     * Obtenir les coordonnées d'un transporteur (lat/lng stockés, adresse par défaut ou géocodage).
+     * Utilise la relation addresses si déjà chargée pour éviter N+1.
      *
      * @param User $transporter
      * @return array|null ['lat' => float, 'lng' => float] ou null
      */
     public function getTransporterCoordinates(User $transporter): ?array
     {
-        // Vérifier si le transporteur a une adresse par défaut
-        $defaultAddress = $transporter->addresses()->where('is_default', true)->first();
-        
+        if (isset($transporter->latitude) && isset($transporter->longitude)
+            && (float) $transporter->latitude != 0 && (float) $transporter->longitude != 0) {
+            return [
+                'lat' => (float) $transporter->latitude,
+                'lng' => (float) $transporter->longitude,
+            ];
+        }
+
+        $defaultAddress = $transporter->relationLoaded('addresses')
+            ? $transporter->addresses->where('is_default', true)->first()
+            : $transporter->addresses()->where('is_default', true)->first();
+
         if ($defaultAddress) {
             return $this->getAddressCoordinates($defaultAddress);
         }
 
-        // Sinon, utiliser l'adresse du transporteur si disponible
-        if ($transporter->address) {
+        if (!empty($transporter->address)) {
             return $this->geocodeAddress($transporter->address);
         }
 
-        // En dernier recours, géocoder avec les informations disponibles
-        if ($transporter->geographic_address) {
+        if (!empty($transporter->geographic_address)) {
             return $this->geocodeAddress($transporter->geographic_address);
         }
 

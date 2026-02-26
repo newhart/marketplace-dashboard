@@ -51,61 +51,54 @@ class TransporterController extends Controller
 
         try {
             $deliveryAddress = Address::findOrFail($request->delivery_address_id);
-            
-            // Déterminer l'adresse du shop (optionnel)
             $shopAddress = $this->getShopAddress($request);
 
-            // Récupérer les transporteurs actifs
-            // Par défaut, limiter à 5 pour les tests, mais peut être modifié via le paramètre limit
-            $limit = $request->input('limit', 5);
-            
+            // Géocoder une seule fois l'adresse de livraison et celle du shop (évite N appels API)
+            $deliveryCoords = $this->distanceService->getAddressCoordinates($deliveryAddress);
+            $shopCoords = $shopAddress
+                ? ($shopAddress instanceof \App\Models\Boutique
+                    ? $this->distanceService->getBoutiqueCoordinates($shopAddress)
+                    : $this->distanceService->getAddressCoordinates($shopAddress))
+                : null;
+
+            $limit = (int) $request->input('limit', 5);
+            $limit = max(1, min(50, $limit));
+
             $transporters = User::where('type', User::TYPE_TRANSPORTER)
                 ->where('is_active', true)
-                ->with('transporterPriceSetting')
+                ->with(['transporterPriceSetting', 'addresses'])
                 ->limit($limit)
                 ->get();
 
             $availableTransporters = [];
 
             foreach ($transporters as $transporter) {
-                // Calculer la distance du shop au transporteur (si shop disponible)
+                // Coordonnées du transporteur une seule fois par boucle (évite 2 appels + N+1 si addresses chargées)
+                $transporterCoords = $this->distanceService->getTransporterCoordinates($transporter);
+
                 $distanceFromShop = null;
-                if ($shopAddress) {
-                    $distanceFromShop = $this->distanceService->calculateDistance(
-                        $shopAddress,
-                        $transporter
-                    );
+                if ($shopCoords && $transporterCoords) {
+                    $distanceFromShop = $this->distanceService->calculateDistance($shopCoords, $transporterCoords);
                 }
 
-                // Calculer la distance du transporteur à l'adresse de livraison
-                $distanceFromDelivery = $this->distanceService->calculateDistance(
-                    $transporter,
-                    $deliveryAddress
-                );
+                $distanceFromDelivery = null;
+                if ($deliveryCoords && $transporterCoords) {
+                    $distanceFromDelivery = $this->distanceService->calculateDistance($transporterCoords, $deliveryCoords);
+                }
 
-                // Si la distance ne peut pas être calculée, on inclut quand même le transporteur
-                // mais avec des valeurs null et un prix par défaut
-                if ($distanceFromDelivery === null) {
-                    Log::warning("Impossible de calculer la distance pour le transporteur", [
+                if ($distanceFromDelivery === null && $transporterCoords !== null) {
+                    Log::warning('Impossible de calculer la distance pour le transporteur', [
                         'transporter_id' => $transporter->id,
                         'transporter_name' => $transporter->name,
                         'delivery_address_id' => $deliveryAddress->id,
                     ]);
                 }
 
-                // Calculer la distance totale
-                // Si on n'a pas la distance, on utilise 0 pour permettre quand même l'affichage
                 $totalDistance = ($distanceFromShop ?? 0) + ($distanceFromDelivery ?? 0);
-
-                // Calculer le prix (utiliser le minimum si distance = 0)
-                $price = $totalDistance > 0 
+                $price = $totalDistance > 0
                     ? $this->calculatePrice($transporter, $totalDistance)
                     : $this->getMinimumPrice($transporter);
-
-                // Estimer le temps (en minutes) - environ 2 minutes par km en ville
                 $estimatedTime = $totalDistance > 0 ? $this->estimateTime($totalDistance) : null;
-
-                // Déterminer si le transporteur est disponible
                 $available = $this->isTransporterAvailable($transporter);
 
                 $availableTransporters[] = [
@@ -126,7 +119,6 @@ class TransporterController extends Controller
                 ];
             }
 
-            // Trier par distance totale (plus proche en premier)
             usort($availableTransporters, function ($a, $b) {
                 return ($a['total_distance'] ?? PHP_INT_MAX) <=> ($b['total_distance'] ?? PHP_INT_MAX);
             });
@@ -145,7 +137,7 @@ class TransporterController extends Controller
                         'type' => $shopAddress instanceof \App\Models\Boutique ? 'boutique' : 'address',
                     ] : null,
                     'note' => $shopAddress ? null : 'Distance du shop non calculée. Fournissez shop_id ou order_id pour une estimation complète.',
-                ]
+                ],
             ]);
 
         } catch (\Exception $e) {
@@ -173,12 +165,12 @@ class TransporterController extends Controller
         // Si order_id est fourni, obtenir la boutique depuis la commande
         if ($request->has('order_id')) {
             $order = Order::with('items.product.user.merchant.boutiques')->find($request->order_id);
-            
+
             if ($order && $order->items->isNotEmpty()) {
-                // Prendre la première boutique du premier marchand
                 $firstItem = $order->items->first();
                 if ($firstItem->product && $firstItem->product->user && $firstItem->product->user->merchant) {
-                    $boutique = $firstItem->product->user->merchant->boutiques()->first();
+                    $merchant = $firstItem->product->user->merchant;
+                    $boutique = $merchant->relationLoaded('boutiques') ? $merchant->boutiques->first() : $merchant->boutiques()->first();
                     if ($boutique) {
                         return $boutique;
                     }
