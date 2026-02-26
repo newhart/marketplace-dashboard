@@ -342,13 +342,11 @@ class TransporterController extends Controller
                 ->orderBy('created_at', 'desc')
                 ->paginate($request->input('per_page', 15));
 
-            $items = $orders->getCollection()->map(function (Order $order) {
-                $shippingAddress = Address::where('user_id', $order->user_id)
-                    ->where('type', Address::TYPE_SHIPPING)
-                    ->orderByDesc('is_default')
-                    ->orderByDesc('created_at')
-                    ->first();
+            $collection = $orders->getCollection();
+            $addressesByUserId = $this->getShippingAddressesForUserIds($collection->pluck('user_id')->unique()->filter()->values()->all());
 
+            $items = $collection->map(function (Order $order) use ($addressesByUserId) {
+                $shippingAddress = $addressesByUserId[$order->user_id] ?? null;
                 return [
                     'id' => $order->id,
                     'reference' => 'C-' . str_pad((string) $order->id, 9, '0', STR_PAD_LEFT),
@@ -604,7 +602,7 @@ class TransporterController extends Controller
         return 'CMD-' . $year . '-' . str_pad((string) $order->id, 3, '0', STR_PAD_LEFT);
     }
 
-    /** Nom du shop (boutique ou marchand) pour une commande. */
+    /** Nom du shop (boutique ou marchand) pour une commande. Utilise les relations déjà chargées. */
     protected function carrierShopNameForOrder(Order $order): ?string
     {
         $first = $order->items->first();
@@ -615,8 +613,28 @@ class TransporterController extends Controller
         if (!$merchant) {
             return $first->product->user->name;
         }
-        $boutique = $merchant->boutiques()->first();
+        $boutique = $merchant->relationLoaded('boutiques') ? $merchant->boutiques->first() : $merchant->boutiques()->first();
         return $boutique?->name ?? $first->product->user->name;
+    }
+
+    /** Charge en une requête les adresses de livraison par user_id (première par défaut). */
+    protected function getShippingAddressesForUserIds(array $userIds): array
+    {
+        if (empty($userIds)) {
+            return [];
+        }
+        $addresses = Address::whereIn('user_id', $userIds)
+            ->where('type', Address::TYPE_SHIPPING)
+            ->orderByDesc('is_default')
+            ->orderByDesc('created_at')
+            ->get();
+        $byUserId = [];
+        foreach ($addresses as $addr) {
+            if (!isset($byUserId[$addr->user_id])) {
+                $byUserId[$addr->user_id] = $addr;
+            }
+        }
+        return $byUserId;
     }
 
     /** Statut exposé côté carrier : validated → assigned. */
@@ -715,7 +733,9 @@ class TransporterController extends Controller
         $orders = $query->orderByDesc('created_at')
             ->paginate((int) $request->input('per_page', 15));
 
-        $items = $orders->getCollection()->map(fn (Order $order) => $this->carrierFormatOrderItem($order));
+        $collection = $orders->getCollection();
+        $addressesByUserId = $this->getShippingAddressesForUserIds($collection->pluck('user_id')->unique()->filter()->values()->all());
+        $items = $collection->map(fn (Order $order) => $this->carrierFormatOrderItem($order, $addressesByUserId[$order->user_id] ?? null));
         $orders->setCollection($items);
 
         return response()->json([
@@ -729,9 +749,9 @@ class TransporterController extends Controller
         ]);
     }
 
-    protected function carrierFormatOrderItem(Order $order): array
+    protected function carrierFormatOrderItem(Order $order, ?Address $shippingAddress = null): array
     {
-        $addr = Address::where('user_id', $order->user_id)
+        $addr = $shippingAddress ?? Address::where('user_id', $order->user_id)
             ->where('type', Address::TYPE_SHIPPING)
             ->orderByDesc('is_default')
             ->orderByDesc('created_at')
@@ -953,7 +973,8 @@ class TransporterController extends Controller
                 $order->user->notify(new OrderInDeliveryNotification($order));
             }
 
-            $data = $this->carrierFormatOrderItem($order->load(['user', 'items.product.user.merchant.boutiques']));
+            $order->load(['user', 'items.product.user.merchant.boutiques']);
+            $data = $this->carrierFormatOrderItem($order);
             $data['delivery_code'] = $order->delivery_code;
 
             return response()->json([
@@ -1004,14 +1025,15 @@ class TransporterController extends Controller
         }
         $order->save();
 
+        $order->load(['user', 'items.product.user.merchant.boutiques']);
         return response()->json([
             'success' => true,
             'message' => 'Statut mis à jour.',
-            'data' => $this->carrierFormatOrderItem($order->load(['user', 'items.product.user.merchant.boutiques'])),
+            'data' => $this->carrierFormatOrderItem($order),
         ]);
     }
 
-    /** GET carrier/dashboard – Statistiques tableau de bord. */
+    /** GET carrier/dashboard – Statistiques tableau de bord (une seule requête agrégée). */
     public function carrierDashboard(): JsonResponse
     {
         if ($err = $this->ensureTransporter()) {
@@ -1021,41 +1043,39 @@ class TransporterController extends Controller
         $tz = config('app.timezone', 'UTC');
         $now = Carbon::now($tz);
         $startOfDay = $now->copy()->startOfDay();
-        $startOfWeek = $now->copy()->startOfWeek(); // Lundi
+        $startOfWeek = $now->copy()->startOfWeek();
         $startOfMonth = $now->copy()->startOfMonth();
 
-        $base = Order::where('transporter_id', $userId)->where('status', 'delivered');
+        $row = Order::where('transporter_id', $userId)
+            ->selectRaw("
+                COUNT(CASE WHEN status = 'delivered' AND COALESCE(delivered_at, updated_at) >= ? THEN 1 END) as orders_today,
+                COUNT(CASE WHEN status = 'delivered' AND COALESCE(delivered_at, updated_at) >= ? THEN 1 END) as orders_week,
+                COUNT(CASE WHEN status = 'delivered' AND COALESCE(delivered_at, updated_at) >= ? THEN 1 END) as orders_month,
+                COUNT(CASE WHEN status IN ('validated', 'picked_up', 'in_transit') THEN 1 END) as pending_orders,
+                COALESCE(SUM(CASE WHEN status = 'delivered' AND COALESCE(delivered_at, updated_at) >= ? THEN delivery_fee END), 0) as earnings_today,
+                COALESCE(SUM(CASE WHEN status = 'delivered' AND COALESCE(delivered_at, updated_at) >= ? THEN delivery_fee END), 0) as earnings_week,
+                COALESCE(SUM(CASE WHEN status = 'delivered' AND COALESCE(delivered_at, updated_at) >= ? THEN delivery_fee END), 0) as earnings_month,
+                COUNT(CASE WHEN status = 'delivered' THEN 1 END) as total_deliveries
+            ", [
+                $startOfDay, $startOfWeek, $startOfMonth,
+                $startOfDay, $startOfWeek, $startOfMonth,
+            ])
+            ->first();
 
-        $ordersToday = (clone $base)->whereRaw('COALESCE(delivered_at, updated_at) >= ?', [$startOfDay])->count();
-        $ordersWeek = (clone $base)->whereRaw('COALESCE(delivered_at, updated_at) >= ?', [$startOfWeek])->count();
-        $ordersMonth = (clone $base)->whereRaw('COALESCE(delivered_at, updated_at) >= ?', [$startOfMonth])->count();
-
-        $pendingOrders = Order::where('transporter_id', $userId)
-            ->whereIn('status', ['validated', 'picked_up', 'in_transit'])
-            ->count();
-
-        $earningsToday = Order::where('transporter_id', $userId)->where('status', 'delivered')
-            ->whereRaw('COALESCE(delivered_at, updated_at) >= ?', [$startOfDay])->sum('delivery_fee');
-        $earningsWeek = Order::where('transporter_id', $userId)->where('status', 'delivered')
-            ->whereRaw('COALESCE(delivered_at, updated_at) >= ?', [$startOfWeek])->sum('delivery_fee');
-        $earningsMonth = Order::where('transporter_id', $userId)->where('status', 'delivered')
-            ->whereRaw('COALESCE(delivered_at, updated_at) >= ?', [$startOfMonth])->sum('delivery_fee');
-
-        $totalDeliveries = Order::where('transporter_id', $userId)->where('status', 'delivered')->count();
         $rating = $this->getTransporterRating(Auth::user()) ?? 0;
 
         return response()->json([
             'success' => true,
             'data' => [
-                'orders_today' => $ordersToday,
-                'orders_week' => $ordersWeek,
-                'orders_month' => $ordersMonth,
-                'pending_orders' => $pendingOrders,
-                'earnings_today' => (float) $earningsToday,
-                'earnings_week' => (float) $earningsWeek,
-                'earnings_month' => (float) $earningsMonth,
+                'orders_today' => (int) ($row->orders_today ?? 0),
+                'orders_week' => (int) ($row->orders_week ?? 0),
+                'orders_month' => (int) ($row->orders_month ?? 0),
+                'pending_orders' => (int) ($row->pending_orders ?? 0),
+                'earnings_today' => (float) ($row->earnings_today ?? 0),
+                'earnings_week' => (float) ($row->earnings_week ?? 0),
+                'earnings_month' => (float) ($row->earnings_month ?? 0),
                 'rating' => (float) $rating,
-                'total_deliveries' => $totalDeliveries,
+                'total_deliveries' => (int) ($row->total_deliveries ?? 0),
             ],
         ]);
     }
